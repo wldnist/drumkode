@@ -1,0 +1,90 @@
+{
+  "format": "drumkode/pattern",
+  "name": "helena (dari PDF Nick's Drum Lessons; bridge belum lengkap)",
+  "bpm": 126,
+  "swing": 0,
+  "sections": [
+    { "name": "intro rest", "bars": 4, "pattern": { "kick": "................", "snare": "................", "hat": "................" } },
+    { "name": "intro groove", "patterns": [
+      { "hat": "xx..x...x...x...", "open": "..x...x...x...x." },
+      { "hat": "x...x...x...x...", "open": "..x...x...x...x." },
+      { "hat": "x...x...x...x...", "open": "..x...x...x...x.", "snare": "..x............." },
+      { "hat": "x...x...x.......", "open": "..x...x...x.....", "snare": "..x.........xxxx" }
+    ] },
+    { "name": "verse hat", "patterns": [
+      { "crash": "x...............", "hat": "..x.x.x.x.x.x.x.", "snare": "..x...x...x...x.", "kick": "x...xx..xx..xx.." },
+      { "hat": "x.x.x.x.x.x.x.x.", "snare": "..x...x...x.x.x.", "kick": "x...xx..xx.x.x.." },
+      { "hat": "x.x.x.x.x.x.x.x.", "snare": "..x...x...x...x.", "kick": "x...xx..xx..xx.." },
+      { "hat": "x.x.x.x.x.......", "snare": "..x...x.x.xxxxxx", "kick": "x...xx.........." }
+    ] },
+    { "name": "verse ride", "patterns": [
+      { "crash": "x...............", "ride": "..x.x.x.x.x.x.x.", "snare": "..x...x...x...x.", "kick": "x...xx..xx..xx.." },
+      { "ride": "x.x.x.x.x.x.x.x.", "snare": "..x...x...x...x.", "kick": "x...xx..xx..xx.." },
+      { "ride": "x.x.x.x.x.x.x.x.", "snare": "..x...x...x...x.", "kick": "x...xx..xx..xx.." },
+      { "ride": "x.x.x.x.x.......", "snare": "..x...x.x.xxxxxx", "kick": "x...xx.........." }
+    ] },
+    { "name": "verse ride end", "patterns": [
+      { "crash": "x...............", "ride": "..x.x.x.x.x.x.x.", "snare": "..x...x...x...x.", "kick": "x...xx..xx..xx.." },
+      { "ride": "x.x.x.x.x.x.x.x.", "snare": "..x...x...x...x.", "kick": "x...xx..xx..xx.." },
+      { "ride": "x.x.x.x.x.x.x.x.", "snare": "..x...x...x...x.", "kick": "x...xx..xx..xx.." },
+      { "ride": "x.x.x.x.........", "snare": "..x...x.xxxxxxxx", "kick": "x...xx.........." }
+    ] },
+    { "name": "chorus a", "patterns": [
+      { "crash": "x...............", "ride": "....x...x...x...", "snare": "........x.......", "kick": "x.....x.......x." },
+      { "ride": "x...x...........", "crash": "........x.x.x...", "snare": "........x.x.x...", "kick": "x.....x.......x." },
+      { "crash": "x...............", "ride": "....x...x...x...", "snare": "........x.......", "kick": "x.....x.......x." },
+      { "ride": "x...x...........", "crash": "........x.......", "snare": "........x.xxxxxx", "kick": "x.....x........." },
+      { "crash": "x...............", "ride": "....x...x...x...", "snare": "........x.x.....", "kick": "x.....x.......x." },
+      { "ride": "x...x...x...x...", "snare": "........x.x.....", "kick": "x.....x.......x." },
+      { "crash": "x...x...x...x...", "snare": "........x...x...", "kick": "x.x.x.x...x...x." },
+      { "crash": "x...x...x...x...", "snare": "........x...x...", "kick": "x.x.x.x...x...x." },
+      { "crash": "x...............", "kick": "x...............", "snare": "............xxxx" }
+    ] },
+    { "name": "chorus b", "patterns": [
+      { "crash": "x...............", "ride": "....x...x...x...", "snare": "........x.......", "kick": "x.....x.......x." },
+      { "ride": "x...x...........", "crash": "........x.x.x.x.", "snare": "........x.x.x...", "kick": "x.....x.......x." },
+      { "crash": "x...............", "ride": "....x...x...x...", "snare": "........x.......", "kick": "x.....x.......x." },
+      { "ride": "x...x...........", "crash": "........x.......", "snare": "........x.xxxxxx", "kick": "x.....x........." },
+      { "crash": "x...............", "ride": "....x...x...x...", "snare": "........x.x.....", "kick": "x.....x.......x." },
+      { "ride": "x...x...x...x...", "snare": "........x.x.....", "kick": "x.....x.......x." },
+      { "crash": "x...x...x...x...", "snare": "........x...x...", "kick": "x.x.x.x...x...x." },
+      { "crash": "x...x...x.......", "snare": "........x.xxxxxx", "kick": "x.x.x.x........." }
+    ] },
+    { "name": "chorus c", "patterns": [
+      { "crash": "x...............", "ride": "....x...x...x...", "snare": "........x.......", "kick": "x.....x.......x." },
+      { "ride": "x...x...........", "crash": "........x.x.x...", "snare": "........x.x.x...", "kick": "x.....x.......x." },
+      { "crash": "x...............", "ride": "....x...x...x...", "snare": "........x.......", "kick": "x.....x.......x." },
+      { "ride": "x...x...........", "crash": "........x.......", "snare": "........x.xxxxxx", "kick": "x.....x........." },
+      { "crash": "x...............", "ride": "....x...x...x...", "snare": "........x.x.....", "kick": "x.....x.......x." },
+      { "ride": "x...x...x...x...", "snare": "........x.x.....", "kick": "x.....x.......x." },
+      { "crash": "x...x...x...x...", "snare": "........x...x...", "kick": "x.x.x.x...x...x." },
+      { "crash": "x...x...x...x...", "snare": "........x...x...", "kick": "x.x.x.x...x...x." },
+      { "crash": "x...............", "kick": "x..............." },
+      { "kick": "................" }
+    ] },
+    { "name": "bridge intro", "patterns": [
+      { "hat": "xxxxx..........." },
+      { "snare": "xxxxx..........." },
+      { "hat": "xxxx............", "snare": "....x..........." }
+    ] },
+    { "name": "bridge buildup", "patterns": [
+      { "snare": "ooooooooxxxxxxxx", "kick": "x...x...x...x..." },
+      { "snare": "xxxxxxxxXXXXXXXX", "kick": "x...x...x...x..." }
+    ] },
+    { "name": "final chorus", "patterns": [
+      { "crash": "x...............", "ride": "....x...x...x...", "snare": "........x.......", "kick": "x.....x.......x." },
+      { "ride": "x...x...........", "crash": "........x.x.x.x.", "snare": "........x.x.x...", "kick": "x.....x.......x." },
+      { "crash": "x...............", "ride": "....x...x...x...", "snare": "........x.......", "kick": "x.....x.......x." },
+      { "ride": "x...x...........", "crash": "........x.......", "snare": "........x.xxxxxx", "kick": "x.....x........." },
+      { "crash": "x...............", "ride": "....x...x...x...", "snare": "........x.x.....", "kick": "x.....x.......x." },
+      { "ride": "x...x...x...x...", "snare": "........x.x.....", "kick": "x.....x.......x." },
+      { "crash": "x...x...x...x...", "snare": "........x...x...", "kick": "x.x.x.x...x...x." },
+      { "crash": "x...x...x.......", "snare": "........x.xxxxxx", "kick": "x.x.x.x........." }
+    ] },
+    { "name": "final loop", "bars": 3, "pattern": { "crash": "x...x...x...x...", "snare": "........x...x...", "kick": "x.x.x.x...x...x." } },
+    { "name": "final fill", "bars": 1, "pattern": { "kick": "x.x.x.x.........", "crash": "x...x...x.......", "snare": "........x.xxxxxx" } },
+    { "name": "final break", "bars": 1, "pattern": { "crash": "x...x...x.x.x...", "snare": "........x.x.x...", "kick": "x.x.x.x.......x." } },
+    { "name": "final hit", "bars": 1, "pattern": { "crash": "x...............", "kick": "x..............." } }
+  ],
+  "arrangement": ["intro rest", "intro groove", "verse hat", "verse hat", "verse ride", "verse ride", "chorus a", "verse hat", "verse hat", "verse ride", "verse ride end", "chorus b", "chorus c", "bridge intro", "bridge buildup", "final chorus", "final loop", "final fill", "final loop", "final break", "final hit"]
+}

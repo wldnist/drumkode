@@ -1,0 +1,8 @@
+Agar aplikasi bisa dipakai tanpa internet, simpan Tone.js (versi 14.7.77) di folder ini dengan nama persis:
+
+    Tone.js
+
+Unduh dari:
+    https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js
+
+Kalau file ini tidak ada, aplikasi mencoba memuat Tone.js dari internet (CDN) saat dibuka.

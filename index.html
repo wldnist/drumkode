@@ -1,0 +1,2586 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>drumkode v0.0.16 — arrangement sequencer Tone.js</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  color-scheme: light;
+  box-sizing: border-box;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  --paper:#E6E9E4; --panel:#F3F5F1; --ink:#16211B; --soft:#5C6B63; --rule:#C9D0C8;
+  --cell:rgba(22,33,27,.07); --cell-hi:rgba(22,33,27,.14); --play:rgba(22,33,27,.11);
+  --l1:#2B4C7E; --l2:#3E7CA8; --l3:#3F9478; --l4:#7E9E33; --l5:#C08A1E;
+  --l6:#7A4E9E; --l7:#B8453A; --l8:#9A3F6B; --l9:#4F7F8A;
+  --code-bg:#EDF0EB; --now:#3F9478; --bad:#B3402A;
+  --gap:3px;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme: dark;
+    --paper:#121815; --panel:#1A221E; --ink:#E3E9E2; --soft:#8A9790; --rule:#2B3631;
+    --cell:rgba(227,233,226,.09); --cell-hi:rgba(227,233,226,.18); --play:rgba(227,233,226,.09);
+    --l1:#5B8FD0; --l2:#58A8D8; --l3:#4FC2A0; --l4:#A8CC4B; --l5:#E0B341;
+    --l6:#A97FD0; --l7:#E4695E; --l8:#D06A9B; --l9:#7FB3BF;
+    --code-bg:#141B18; --now:#4FC2A0; --bad:#E0775F;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme: dark;
+  --paper:#121815; --panel:#1A221E; --ink:#E3E9E2; --soft:#8A9790; --rule:#2B3631;
+  --cell:rgba(227,233,226,.09); --cell-hi:rgba(227,233,226,.18); --play:rgba(227,233,226,.09);
+  --l1:#5B8FD0; --l2:#58A8D8; --l3:#4FC2A0; --l4:#A8CC4B; --l5:#E0B341;
+  --l6:#A97FD0; --l7:#E4695E; --l8:#D06A9B; --l9:#7FB3BF;
+  --code-bg:#141B18; --now:#4FC2A0; --bad:#E0775F;
+}
+*,*::before,*::after{ box-sizing:inherit; }
+html,body{ margin:0; }
+body{
+  background:var(--paper); color:var(--ink);
+  font-family:"JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size:13px; line-height:1.55; -webkit-text-size-adjust:100%;
+}
+.wrap{ max-width:760px; margin:0 auto; padding:22px 16px 56px; }
+h1{ font-family:"Archivo", system-ui, sans-serif; font-weight:700; font-size:30px; line-height:1; letter-spacing:-.025em; margin:0 0 7px; }
+.ver{ font-family:"JetBrains Mono", ui-monospace, monospace; font-size:11px; font-weight:400; letter-spacing:0; color:var(--soft); margin-left:8px; }
+.masthead{ margin-bottom:22px; }
+.masthead p{ margin:0; color:var(--soft); font-size:12px; max-width:54ch; }
+h2{ font-family:"Archivo", system-ui, sans-serif; font-size:14px; font-weight:600; margin:0; letter-spacing:-.01em; }
+.note{ font-size:11px; color:var(--soft); margin:6px 0 10px; max-width:58ch; }
+section.block{ margin-bottom:26px; }
+
+/* transport */
+.transport{
+  display:flex; align-items:center; gap:12px; flex-wrap:wrap;
+  background:var(--panel); border:1px solid var(--rule); border-radius:3px;
+  padding:11px 12px; margin-bottom:8px;
+}
+.btns{ display:flex; gap:8px; }
+.play{
+  font:inherit; font-weight:700; font-size:13px;
+  color:var(--paper); background:var(--ink);
+  border:1px solid var(--ink); border-radius:3px;
+  padding:9px 14px; min-width:112px; cursor:pointer;
+}
+.play.alt{ background:transparent; color:var(--ink); }
+.play[data-on="1"]{ background:var(--now); border-color:var(--now); color:#06110C; }
+.dials{ display:flex; gap:16px; flex:1 1 190px; min-width:0; }
+.dial{ flex:1 1 0; min-width:0; }
+.dial label{ display:flex; justify-content:space-between; gap:8px; font-size:11px; color:var(--soft); margin-bottom:3px; }
+.dial b{ color:var(--ink); font-weight:700; }
+input[type=range]{ -webkit-appearance:none; appearance:none; width:100%; height:18px; background:transparent; margin:0; cursor:pointer; }
+input[type=range]::-webkit-slider-runnable-track{ height:3px; background:var(--rule); border-radius:2px; }
+input[type=range]::-moz-range-track{ height:3px; background:var(--rule); border-radius:2px; }
+input[type=range]::-webkit-slider-thumb{ -webkit-appearance:none; width:16px; height:16px; border-radius:50%; background:var(--ink); border:0; margin-top:-6.5px; }
+input[type=range]::-moz-range-thumb{ width:16px; height:16px; border-radius:50%; background:var(--ink); border:0; }
+.status{ font-size:11px; color:var(--soft); margin:0 0 20px; min-height:1.55em; }
+.status b{ color:var(--ink); }
+
+/* chips */
+.chip{
+  font:inherit; font-size:11px; color:var(--ink);
+  background:var(--panel); border:1px solid var(--rule); border-radius:3px;
+  padding:6px 11px; cursor:pointer;
+}
+.chip:hover{ border-color:var(--ink); }
+.chip.on{ background:var(--ink); color:var(--paper); border-color:var(--ink); }
+.chip.primary{ background:var(--ink); color:var(--paper); border-color:var(--ink); }
+.chip.ghost{ background:none; color:var(--soft); }
+.chip.now{ box-shadow:inset 0 -3px 0 var(--now); }
+.chip.ghost.on{ background:var(--ink); color:var(--paper); border-color:var(--ink); }
+.chip:disabled{ opacity:.4; cursor:not-allowed; }
+.chip:focus-visible, .play:focus-visible, .mini:focus-visible{ outline:2px solid var(--ink); outline-offset:2px; }
+
+/* sections */
+.tabs{ display:flex; flex-wrap:wrap; gap:6px; margin-bottom:10px; }
+.secbar{ display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-bottom:12px; }
+.field{ display:flex; align-items:center; gap:6px; font-size:11px; color:var(--soft); }
+.field input[type=text], .field select{
+  font:inherit; font-size:12px; color:var(--ink);
+  background:var(--panel); border:1px solid var(--rule); border-radius:3px; padding:5px 8px;
+}
+.field input[type=text]{ width:122px; }
+.secbar .spacer{ flex:1; }
+.barbar{ display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:14px; }
+.barbar .tag{ font-size:11px; color:var(--soft); }
+.bartabs{ display:flex; flex-wrap:wrap; gap:4px; }
+.bartabs .chip{ padding:4px 9px; min-width:30px; }
+.barbar .spacer{ flex:1; }
+
+/* grid */
+.machine{ position:relative; margin-bottom:18px; }
+.row16{ display:grid; grid-template-columns:repeat(16,1fr); gap:var(--gap); }
+.ruler{ margin-bottom:9px; }
+.ruler span{ font-size:10px; color:var(--soft); text-align:center; border-top:1px solid var(--rule); padding-top:3px; }
+.ruler span.beat{ color:var(--ink); border-top-color:var(--ink); }
+.playhead{
+  position:absolute; top:0; bottom:0; left:0;
+  width:calc((100% - 15 * var(--gap)) / 16);
+  background:var(--play); border-radius:2px;
+  transform:translateX(calc(var(--i) * 100% + var(--i) * var(--gap)));
+  transition:transform .05s linear; pointer-events:none; opacity:0;
+}
+.playhead.live{ opacity:1; }
+@media (prefers-reduced-motion: reduce){ .playhead{ transition:none; } }
+.lane{ margin-bottom:8px; position:relative; }
+.lane:last-child{ margin-bottom:0; }
+.name{
+  font:inherit; font-size:11px; color:var(--soft);
+  background:none; border:0; padding:0 0 3px; margin:0; cursor:pointer;
+  display:inline-flex; align-items:center; gap:6px;
+}
+.name::before{ content:""; width:7px; height:7px; border-radius:50%; background:var(--hue); }
+.name:hover{ color:var(--ink); }
+.cell{
+  appearance:none; -webkit-appearance:none; border:0; padding:0; margin:0;
+  height:26px; border-radius:2px; background:var(--cell); cursor:pointer;
+  position:relative; z-index:1; transition:background .08s ease, transform .06s ease;
+}
+.cell.down{ box-shadow:inset 0 0 0 1px var(--cell-hi); }
+.cell:active{ transform:scale(.9); }
+.cell.flash{ background:var(--cell-hi); }
+.cell[aria-pressed="true"].flash{ filter:brightness(1.45); }
+.cell[data-v="1"], .sw[data-v="1"]{ background:var(--hue); }
+.cell[data-v="2"], .sw[data-v="2"]{ background:var(--hue); box-shadow:inset 0 0 0 2px var(--paper); filter:brightness(1.18); }
+.cell[data-v="3"], .sw[data-v="3"]{ background:linear-gradient(to top, var(--hue) 0 38%, var(--cell) 38% 100%); }
+.legend{ font-size:11px; color:var(--soft); margin:0 0 10px; --hue:var(--ink); max-width:66ch; }
+.sw{ display:inline-block; width:14px; height:12px; border-radius:2px; vertical-align:-2px; margin:0 3px 0 2px; background:var(--cell); }
+.cell:focus-visible{ outline:2px solid var(--ink); outline-offset:2px; }
+
+.shelf{ display:flex; flex-wrap:wrap; gap:6px; align-items:center; padding-top:16px; border-top:1px solid var(--rule); margin-bottom:28px; }
+.shelf .tag{ font-size:11px; color:var(--soft); margin-right:4px; }
+.shelf .chip.ghost{ margin-left:auto; }
+
+/* arrangement */
+.arr{ display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px; min-height:34px; }
+.arr-item{
+  display:inline-flex; align-items:stretch;
+  background:var(--panel); border:1px solid var(--rule); border-radius:3px; overflow:hidden;
+}
+.arr-item.now{ border-color:var(--now); box-shadow:inset 0 -3px 0 var(--now); }
+.arr-name{ font:inherit; font-size:11px; color:var(--ink); background:none; border:0; padding:6px 9px; cursor:pointer; }
+.mini{ font:inherit; font-size:12px; color:var(--soft); background:none; border:0; border-left:1px solid var(--rule); padding:0 8px; cursor:pointer; min-width:26px; }
+.mini:hover{ color:var(--ink); background:var(--cell); }
+.mini:disabled{ opacity:.3; cursor:default; }
+.arr-empty{ font-size:11px; color:var(--soft); align-self:center; }
+.addrow{ display:flex; flex-wrap:wrap; gap:6px; align-items:center; }
+.addrow .tag{ font-size:11px; color:var(--soft); margin-right:4px; }
+.total{ font-size:11px; color:var(--soft); margin:0 0 10px; }
+.total b{ color:var(--ink); }
+
+/* import */
+textarea{
+  display:block; width:100%; min-height:120px; resize:vertical;
+  font:inherit; font-size:11.5px; line-height:1.55; color:var(--ink);
+  background:var(--code-bg); border:1px solid var(--rule); border-radius:3px; padding:10px 12px;
+}
+textarea:focus-visible{ outline:2px solid var(--ink); outline-offset:2px; }
+.improw{ display:flex; flex-wrap:wrap; gap:6px; margin:8px 0 12px; align-items:center; }
+.improw .chip.ghost{ margin-left:auto; }
+.filepick{ position:relative; overflow:hidden; display:inline-block; }
+.filepick input{ position:absolute; inset:0; width:100%; height:100%; opacity:0; cursor:pointer; font-size:0; }
+.filepick:focus-within{ outline:2px solid var(--ink); outline-offset:2px; }
+.msg{ border-left:3px solid var(--rule); padding:2px 0 2px 9px; margin:5px 0; font-size:11px; }
+.msg.ok{ border-left-color:var(--now); }
+.msg.err{ border-left-color:var(--bad); color:var(--bad); }
+.apply{ display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-top:10px; }
+.apply label{ font-size:11px; color:var(--soft); display:flex; align-items:center; gap:6px; margin-right:6px; }
+
+/* code */
+.codehead{ display:flex; align-items:baseline; gap:12px; margin-bottom:2px; }
+.codehead .copy{ font:inherit; font-size:11px; margin-left:auto; background:none; border:1px solid var(--rule); border-radius:3px; color:var(--ink); padding:4px 10px; cursor:pointer; }
+.codehead .copy:hover{ border-color:var(--ink); }
+pre{ margin:0; padding:13px 14px; background:var(--code-bg); border:1px solid var(--rule); border-radius:3px; overflow:auto; font-size:11.5px; line-height:1.65; max-height:420px; }
+code{ font-family:inherit; white-space:pre; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="masthead">
+    <h1>drumkode<span class="ver">v0.0.16</span></h1>
+    <p>Susun section (intro, verse, chorus), beri pola berbeda untuk tiap bar, atur keras-pelannya tiap not, lalu putar satu section atau seluruh lagu. Kode Tone.js untuk arrangement penuh dibuat otomatis di bawah.</p>
+  </header>
+
+  <div class="transport">
+    <div class="btns">
+      <button class="play alt" id="playSec" data-on="0">Putar section</button>
+      <button class="play" id="playSong" data-on="0">Putar lagu</button>
+    </div>
+    <div class="dials">
+      <div class="dial">
+        <label for="bpm">tempo <b><span id="bpmv">88</span> bpm</b></label>
+        <input type="range" id="bpm" min="60" max="180" step="1" value="88">
+      </div>
+      <div class="dial">
+        <label for="swing">swing <b><span id="swingv">25</span>%</b></label>
+        <input type="range" id="swing" min="0" max="60" step="1" value="25">
+      </div>
+    </div>
+  </div>
+  <div style="display:flex;flex-wrap:wrap;gap:14px;align-items:center;margin:0 0 8px">
+    <label class="field">suara drum
+      <select id="kitSel" aria-label="Pilih kit suara drum">
+        <option value="baru">baru (berlapis)</option>
+        <option value="lama">lama (sederhana)</option>
+      </select>
+    </label>
+    <label class="field"><input type="checkbox" id="humanize" checked> humanize</label>
+  </div>
+  <p class="status" id="status"></p>
+
+  <section class="block" aria-label="Section">
+    <div class="tabs" id="tabs"></div>
+    <div class="secbar">
+      <label class="field">nama <input type="text" id="secName" maxlength="16" autocomplete="off"></label>
+      <label class="field">panjang <select id="secBars"></select> bar</label>
+      <span class="spacer"></span>
+      <button class="chip ghost" id="dup">duplikat</button>
+      <button class="chip ghost" id="del">hapus</button>
+    </div>
+
+    <div class="barbar" id="barbar">
+      <span class="tag">bar</span>
+      <div class="bartabs" id="bartabs"></div>
+      <label class="field"><input type="checkbox" id="linked"> <span id="linkedText">ubah semua bar bersamaan</span></label>
+      <span class="spacer"></span>
+      <button class="chip ghost" id="copyNext">salin ke bar berikutnya</button>
+    </div>
+
+    <p class="legend">Ketuk berulang: <span class="sw" data-v="3"></span>ghost, <span class="sw" data-v="1"></span>normal, <span class="sw" data-v="2"></span>aksen, lalu kosong. Desktop: Shift+klik aksen, Alt+klik ghost, klik kanan hapus.</p>
+
+    <div class="machine">
+      <div class="playhead" id="playhead" style="--i:0"></div>
+      <div class="row16 ruler" id="ruler"></div>
+      <div id="lanes"></div>
+    </div>
+
+    <div class="shelf">
+      <span class="tag">pola band:</span>
+      <button class="chip" data-preset="rock">rock 8th</button>
+      <button class="chip" data-preset="rockride">rock + ride</button>
+      <button class="chip" data-preset="halftime">half-time</button>
+      <button class="chip" data-preset="poppunk">pop-punk</button>
+      <button class="chip" data-preset="funk">funk 16th</button>
+      <button class="chip" data-preset="reggae">reggae</button>
+      <button class="chip" data-preset="ska">ska</button>
+      <button class="chip" data-preset="disco">disco rock</button>
+      <button class="chip" data-preset="ballad">ballad</button>
+      <span style="flex-basis:100%;height:0"></span>
+      <span class="tag">fill:</span>
+      <button class="chip" data-preset="fillsnare">fill snare</button>
+      <button class="chip" data-preset="filltom">fill tom</button>
+      <span style="flex-basis:100%;height:0"></span>
+      <span class="tag">elektronik:</span>
+      <button class="chip" data-preset="boombap">boom bap</button>
+      <button class="chip" data-preset="house">four on the floor</button>
+      <button class="chip" data-preset="break">breakbeat</button>
+      <button class="chip" data-preset="trap">trap</button>
+      <button class="chip ghost" id="clear">kosongkan</button>
+    </div>
+  </section>
+
+  <section class="block" aria-label="Urutan lagu">
+    <h2>Urutan lagu</h2>
+    <p class="note">Ketuk nama untuk mengedit section itu. Satu section bisa dipakai berkali-kali.</p>
+    <div class="arr" id="arr"></div>
+    <p class="total" id="total"></p>
+    <div class="addrow" id="addrow"></div>
+    <div style="margin-top:12px;display:flex;flex-wrap:wrap;gap:6px">
+      <button class="chip ghost" id="newSheet" type="button">lembar baru</button>
+      <button class="chip ghost" id="bandSample" type="button">contoh lagu band</button>
+    </div>
+  </section>
+
+  <section class="block" aria-label="Ekspor">
+    <h2>Ekspor</h2>
+    <p class="note">Simpan section yang sedang dibuka, atau seluruh lagu beserta urutan dan tempo. JSON bisa diimpor kembali ke aplikasi. MIDI untuk dibuka di DAW (channel drum, swing ikut dihitung). WAV adalah hasil render audio (memakai suara kit baru). MIDI dan WAV dikemas dalam file zip karena unduhan di halaman ini hanya menerima ekstensi tertentu.</p>
+    <div class="improw">
+      <label class="field">format
+        <select id="expFmt" aria-label="Format ekspor">
+          <option value="json">JSON (format aplikasi)</option>
+          <option value="midi">MIDI (untuk DAW)</option>
+          <option value="wav">WAV (audio)</option>
+        </select>
+      </label>
+      <button class="chip primary" id="expSection" type="button">unduh section ini</button>
+      <button class="chip primary" id="expSong" type="button">unduh seluruh lagu</button>
+      <button class="chip ghost" id="expCopy" type="button">salin JSON lagu</button>
+    </div>
+    <div class="msg" id="expMsg" role="status" hidden></div>
+    <textarea id="expText" readonly hidden aria-label="JSON untuk disalin manual" style="min-height:90px"></textarea>
+  </section>
+
+  <section class="block" aria-label="Import pola">
+    <h2>Import pola</h2>
+    <p class="note">Tempel JSON atau pilih file <code>.json</code> / <code>.mid</code>. File dibaca di browser ini saja dan tidak diunggah ke mana pun. Pola dari AI sebaiknya didengarkan dan dikoreksi sebelum dipakai. Kalau "pilih file" tidak bereaksi (sebagian aplikasi membatasi pemilih file), buka file JSON-nya, salin isinya, tempel ke kotak di bawah, lalu ketuk "baca teks". Di desktop, file juga bisa diseret ke kotak teks.</p>
+    <textarea id="impText" spellcheck="false" aria-label="JSON pola" placeholder='{"sections":[{"name":"verse","bars":4,"pattern":{"kick":"x...x...x...x...","snare":"....x.......x..."}}]}'></textarea>
+    <div class="improw">
+      <button class="chip primary" id="impRead" type="button">baca teks</button>
+      <label class="chip filepick" id="impPick">pilih file<input type="file" id="impFile" aria-label="Pilih file JSON atau MIDI"></label>
+      <button class="chip" id="impExample" type="button">isi contoh</button>
+      <button class="chip ghost" id="impPrompt" type="button">salin prompt untuk AI</button>
+    </div>
+    <div class="msg" id="impNotice" role="status" hidden></div>
+    <div id="impOut" aria-live="polite"></div>
+  </section>
+
+  <section class="block" aria-label="Diagnosa audio">
+    <details id="diag">
+      <summary>Diagnosa audio (mencari penyebab suara pecah)</summary>
+      <p class="note">Monitor mengukur tiga hal saat lagu diputar: puncak volume (clipping), not yang terlambat dijadwalkan, dan beban pemrosesan. Aktifkan, putar seperti biasa sampai terdengar pecah, lalu salin laporannya dan kirim ke saya. "Uji clipping offline" merender pola padat di kit baru dan lama tanpa perlu didengar.</p>
+      <div class="improw">
+        <button class="chip primary" id="diagMon" type="button">mulai monitor</button>
+        <button class="chip" id="diagReset" type="button">reset angka</button>
+        <button class="chip" id="diagOff" type="button">uji clipping offline</button>
+        <button class="chip ghost" id="diagCopy" type="button">salin laporan</button>
+      </div>
+      <pre id="diagOut" style="max-height:300px">Belum ada data.</pre>
+    </details>
+  </section>
+
+  <section class="block" aria-label="Kode">
+    <div class="codehead">
+      <h2>Kode Tone.js (arrangement penuh)</h2>
+      <button class="copy" id="copy">salin</button>
+    </div>
+    <p class="note">Satu bagian <code>schedule()</code> dipakai untuk dua hal: putar langsung, atau <code>Tone.Offline</code> untuk render seluruh lagu jadi AudioBuffer.</p>
+    <pre><code id="code"></code></pre>
+  </section>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
+<script>
+(function () {
+  "use strict";
+
+  var STEPS = 16;
+  var STORE_KEY = "drumkode:v3";
+  var OLD_STORE_KEY = "drumkode:v2";
+  var BAR_CHOICES = [1,2,3,4,5,6,7,8,12,16];
+
+  var LANES = [
+    { id: "kick",  label: "kick",       hue: "var(--l1)" },
+    { id: "snare", label: "snare",      hue: "var(--l2)" },
+    { id: "rim",   label: "rim click",  hue: "var(--l9)" },
+    { id: "clap",  label: "clap",       hue: "var(--l3)" },
+    { id: "tom",   label: "tom",        hue: "var(--l6)" },
+    { id: "hat",   label: "closed hat", hue: "var(--l4)" },
+    { id: "open",  label: "open hat",   hue: "var(--l5)" },
+    { id: "ride",  label: "ride",       hue: "var(--l7)" },
+    { id: "crash", label: "crash",      hue: "var(--l8)" }
+  ];
+
+  var Z = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0];
+
+  // nilai langkah: 0 diam, 1 normal, 2 aksen, 3 ghost
+  var VEL = { 1: 0.85, 2: 1, 3: 0.4 };
+  var CYCLE = { 0: 3, 3: 1, 1: 2, 2: 0 };   // ketuk berulang: ghost -> normal -> aksen -> kosong
+  var LEVEL_NAME = { 0: "kosong", 1: "normal", 2: "aksen", 3: "ghost" };
+
+  var PRESETS = {
+    boombap: {
+      kick:  [1,0,0,0,0,0,1,0,0,0,1,0,0,0,0,0],
+      snare: [0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0],
+      hat:   [1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0],
+      open:  [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1]
+    },
+    house: {
+      kick:  [1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0],
+      clap:  [0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0],
+      hat:   [0,0,1,0,0,0,1,0,0,0,1,0,0,0,1,0]
+    },
+    break: {
+      kick:  [1,0,0,0,0,0,1,0,0,0,0,0,0,0,1,0],
+      snare: [0,0,0,0,1,0,0,0,0,0,1,0,1,0,0,0],
+      hat:   [1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0],
+      open:  [0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0]
+    },
+    trap: {
+      kick:  [1,0,0,0,0,0,1,0,0,1,0,0,0,0,0,0],
+      snare: [0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0],
+      clap:  [0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0],
+      hat:   [1,0,1,1,1,0,1,0,1,1,1,0,1,0,1,1]
+    },
+    rock: {
+      kick: [1,0,0,0,0,0,0,0,1,0,1,0,0,0,0,0],
+      snare: [0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0],
+      hat: [2,0,1,0,2,0,1,0,2,0,1,0,2,0,1,0]
+    },
+    rockride: {
+      kick: [1,0,0,0,0,0,0,0,1,0,1,0,0,0,0,0],
+      snare: [0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0],
+      ride: [2,0,1,0,2,0,1,0,2,0,1,0,2,0,1,0],
+      crash: [2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+    },
+    halftime: {
+      kick: [1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0],
+      snare: [0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0],
+      hat: [2,0,1,0,1,0,1,0,2,0,1,0,1,0,1,0]
+    },
+    poppunk: {
+      kick: [1,0,1,0,0,0,0,0,1,0,0,0,0,0,0,0],
+      snare: [0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0],
+      hat: [2,0,1,0,2,0,1,0,2,0,1,0,2,0,1,0]
+    },
+    funk: {
+      kick: [1,0,0,0,0,0,1,0,0,0,1,0,0,0,0,0],
+      snare: [0,0,0,0,1,0,0,3,0,3,0,0,1,0,0,3],
+      hat: [2,3,1,3,2,3,1,3,2,3,1,3,2,3,1,3]
+    },
+    reggae: {
+      kick: [0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0],
+      rim: [0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0],
+      hat: [1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0]
+    },
+    ska: {
+      kick: [1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0],
+      snare: [0,0,1,0,0,0,1,0,0,0,1,0,0,0,1,0],
+      hat: [1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0]
+    },
+    disco: {
+      kick: [1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0],
+      snare: [0,0,0,0,2,0,0,0,0,0,0,0,2,0,0,0],
+      hat: [1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0],
+      open: [0,0,1,0,0,0,1,0,0,0,1,0,0,0,1,0]
+    },
+    ballad: {
+      kick: [1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0],
+      rim: [0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0],
+      hat: [1,0,3,0,1,0,3,0,1,0,3,0,1,0,3,0]
+    },
+    fillsnare: {
+      kick: [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+      snare: [0,0,0,0,1,0,0,0,3,3,1,1,1,1,2,2],
+      hat: [1,0,1,0,1,0,1,0,0,0,0,0,0,0,0,0]
+    },
+    filltom: {
+      kick: [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+      snare: [0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0],
+      tom: [0,0,0,0,0,0,0,0,1,0,1,0,1,1,2,2],
+      hat: [1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0]
+    }
+  };
+
+  // contoh lagu awal
+  var STARTER = [
+    { name: "intro", bars: 2, pattern: {
+        kick:  [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+        hat:   [1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0] } },
+    { name: "verse", bars: 4, pattern: PRESETS.boombap },
+    { name: "fill", bars: 1, pattern: {
+        kick:  [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+        snare: [0,0,0,0,0,0,0,0,3,0,3,0,1,3,1,2],
+        hat:   [1,0,1,0,1,0,1,0,0,0,0,0,0,0,0,0] } },
+    { name: "chorus", bars: 4, pattern: {
+        kick:  [1,0,0,0,0,0,1,0,0,0,1,0,0,0,0,1],
+        snare: [0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0],
+        clap:  [0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0],
+        hat:   [2,0,1,0,2,0,1,0,2,0,1,0,2,0,1,0],
+        open:  [0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0] } }
+  ];
+  var STARTER_ARR = [0, 1, 1, 2, 3, 3];
+
+  // ---------- state ----------
+  var sections = [];      // {id, name, bars, patterns:[pola per bar]}
+  var arrangement = [];   // daftar id section
+  var activeId = null;
+  var curBar = 0;         // bar yang sedang diedit di section aktif
+  var linked = true;      // edit berlaku ke semua bar
+  var bpm = 88, swing = 25;
+  var nextId = 1;
+
+  var running = null;     // null | "section" | "song"
+  var step = 0;
+  var ready = false;
+  var kit = null;
+  var kitName = "baru";
+  var humanize = true;
+  var cells = {};
+
+  function lv(v) {
+    var n = Number(v);
+    return (n === 2 || n === 3) ? n : (n > 0 ? 1 : 0);
+  }
+  function copyPattern(p) {
+    var o = {};
+    LANES.forEach(function (l) {
+      o[l.id] = Array.isArray(p[l.id]) ? p[l.id].map(lv) : new Array(STEPS).fill(0);
+    });
+    return o;
+  }
+  function emptyPattern() { return copyPattern({}); }
+  function repeatPat(p, n) {
+    var a = [];
+    for (var i = 0; i < n; i++) a.push(copyPattern(p));
+    return a;
+  }
+  function makeSection(name, patterns) {
+    return { id: "s" + (nextId++), name: name, bars: patterns.length, patterns: patterns.map(copyPattern) };
+  }
+  function byId(id) {
+    for (var i = 0; i < sections.length; i++) if (sections[i].id === id) return sections[i];
+    return null;
+  }
+  function active() { return byId(activeId); }
+  function allSame(sec) {
+    var first = JSON.stringify(sec.patterns[0]);
+    for (var i = 1; i < sec.patterns.length; i++) {
+      if (JSON.stringify(sec.patterns[i]) !== first) return false;
+    }
+    return true;
+  }
+  function setBars(sec, n) {
+    while (sec.patterns.length < n) sec.patterns.push(copyPattern(sec.patterns[sec.patterns.length - 1]));
+    if (sec.patterns.length > n) sec.patterns.length = n;
+    sec.bars = n;
+    if (curBar >= n) curBar = n - 1;
+  }
+  function editTargets(sec) {
+    return linked ? sec.patterns.map(function (_, i) { return i; }) : [curBar];
+  }
+
+  function initStarter() {
+    sections = STARTER.map(function (s) { return makeSection(s.name, repeatPat(s.pattern, s.bars)); });
+    arrangement = STARTER_ARR.map(function (i) { return sections[i].id; });
+    activeId = sections[1].id;
+    bpm = 88; swing = 25;
+  }
+
+  // ---------- persistence (terbatas ke browser ini) ----------
+  function save() {
+    try {
+      localStorage.setItem(STORE_KEY, JSON.stringify({
+        bpm: bpm, swing: swing, sections: sections, arrangement: arrangement, activeId: activeId,
+        kit: kitName, humanize: humanize
+      }));
+    } catch (e) { /* storage bisa kosong/diblokir: abaikan */ }
+  }
+  function patternOk(p) {
+    return p && typeof p === "object" && LANES.every(function (l) {
+      return p[l.id] === undefined || (Array.isArray(p[l.id]) && p[l.id].length === STEPS);
+    });
+  }
+  function restore() {
+    try {
+      var raw = localStorage.getItem(STORE_KEY) || localStorage.getItem(OLD_STORE_KEY);
+      if (!raw) return false;
+      var d = JSON.parse(raw);
+      if (!d || !Array.isArray(d.sections) || !d.sections.length) return false;
+      var loaded = [];
+      for (var i = 0; i < d.sections.length; i++) {
+        var s = d.sections[i];
+        if (!s || typeof s.id !== "string" || typeof s.name !== "string") return false;
+        var pats = null;
+        if (Array.isArray(s.patterns)) pats = s.patterns;
+        else if (s.pattern && typeof s.bars === "number" && s.bars >= 1 && s.bars <= 16) pats = repeatPat(s.pattern, Math.round(s.bars));
+        if (!pats || pats.length < 1 || pats.length > 16 || !pats.every(patternOk)) return false;
+        loaded.push({ id: s.id, name: s.name.slice(0, 16), bars: pats.length, patterns: pats.map(copyPattern) });
+      }
+      sections = loaded;
+      var max = 0;
+      sections.forEach(function (s) { var n = parseInt(s.id.slice(1), 10); if (n > max) max = n; });
+      nextId = max + 1;
+      arrangement = (Array.isArray(d.arrangement) ? d.arrangement : []).filter(function (id) { return !!byId(id); });
+      activeId = byId(d.activeId) ? d.activeId : sections[0].id;
+      bpm = Math.min(180, Math.max(60, Number(d.bpm) || 88));
+      swing = Math.min(60, Math.max(0, Number(d.swing) || 0));
+      if (d.kit === "baru" || d.kit === "lama") kitName = d.kit;
+      if (typeof d.humanize === "boolean") humanize = d.humanize;
+      return true;
+    } catch (e) { return false; }
+  }
+
+  // ---------- kit ----------
+  // Dua kit dengan antarmuka sama: play(id, time, velocity).
+  // "baru": drum berlapis + bus master (EQ, kompresor, saturasi halus, limiter) + ruang pendek.
+  // "lama": sintesis sederhana (satu synth per lane).
+  var HUM = { kick: 0.04, snare: 0.08, rim: 0.08, clap: 0.08, tom: 0.08, hat: 0.14, open: 0.1, ride: 0.1, crash: 0.04 };
+
+  function buildKitNew(bake) {
+    var nodes = [];
+    function keep(n) { nodes.push(n); return n; }
+
+    // bus master: EQ -> kompresor -> saturasi halus -> limiter
+    var limiter = keep(new Tone.Limiter(-1).toDestination());
+    var sat = keep(new Tone.Distortion({ distortion: 0.06 })); sat.wet.value = 0.25;
+    var comp = keep(new Tone.Compressor({ threshold: -20, ratio: 4, attack: 0.004, release: 0.12, knee: 8 }));
+    var eq = keep(new Tone.EQ3({ low: 2, mid: -1, high: 2, lowFrequency: 150, highFrequency: 5000 }));
+    var bus = keep(new Tone.Gain(0.85));   // headroom
+    if (bake) bus.chain(eq, sat, limiter);   // dipanggang: kompresor ada di master pemutaran
+    else bus.chain(eq, comp, sat, limiter);
+
+    // ruang pendek
+    // Reverb konvolusi (native) jauh lebih ringan daripada Freeverb yang memakai puluhan AudioWorklet
+    var room = null;
+    try {
+      room = keep(new Tone.Reverb({ decay: 0.5, preDelay: 0.004 }));
+      room.wet.value = 1;
+      room.connect(bus);
+    } catch (e) { room = null; }   // tanpa ruang kalau reverb gagal dibuat
+
+    // sumber -> (filter) -> bus, plus kirim opsional ke ruang
+    function route(src, filters, vol, roomAmt) {
+      keep(src);
+      if (vol !== undefined) src.volume.value = vol;
+      var tail = src;
+      (filters || []).forEach(function (f) { keep(f); tail.connect(f); tail = f; });
+      tail.connect(bus);
+      if (roomAmt && room) { var g = keep(new Tone.Gain(roomAmt)); tail.connect(g); g.connect(room); }
+      return src;
+    }
+    function noise(decay) {
+      return new Tone.NoiseSynth({ noise: { type: "white" }, envelope: { attack: 0.001, decay: decay, sustain: 0 } });
+    }
+    function drum(pitchDecay, octaves, decay, type) {
+      return new Tone.MembraneSynth({
+        pitchDecay: pitchDecay, octaves: octaves, oscillator: { type: type || "sine" },
+        envelope: { attack: 0.001, decay: decay, sustain: 0, release: decay + 0.1 }
+      });
+    }
+    function metal(freq, harm, mod, res, oct, decay, release) {
+      return new Tone.MetalSynth({
+        frequency: freq, harmonicity: harm, modulationIndex: mod, resonance: res, octaves: oct,
+        envelope: { attack: 0.001, decay: decay, release: release }
+      });
+    }
+    function filt(type, freq, q) { return new Tone.Filter({ type: type, frequency: freq, Q: q === undefined ? 1 : q }); }
+
+    // kick: badan + "knock" di frekuensi tengah + klik beater
+    var kBody  = route(drum(0.03, 9, 0.34), null, -2);
+    var kKnock = route(drum(0.02, 3, 0.09), null, -9);
+    var kClick = route(noise(0.012), [filt("highpass", 3000, 0.7)], -20);
+
+    // snare: shell + kawat + retakan, dengan sedikit ruang
+    var sShell = route(drum(0.008, 2.2, 0.13, "triangle"), null, -9, 0.15);
+    var sWires = route(noise(0.2), [filt("highpass", 1800, 0.6), filt("lowpass", 9000, 0.6)], -7, 0.18);
+    var sCrack = route(noise(0.025), [filt("highpass", 4500, 0.7)], -14);
+
+    // rim click: klik noise + nada kayu
+    var rNoise = route(noise(0.025), [filt("bandpass", 2400, 2.5)], -6);
+    var rTone  = route(drum(0.005, 1.4, 0.045, "triangle"), null, -12);
+
+    // clap: tiga semburan noise + ekor, dengan ruang
+    var clap = route(noise(0.17), [filt("bandpass", 1250, 0.9)], -9, 0.25);
+
+    // tom
+    var tBody  = route(drum(0.045, 3, 0.4), null, -5, 0.15);
+    var tClick = route(noise(0.01), [filt("highpass", 2000, 0.7)], -22);
+
+    // hi-hat tertutup dan terbuka: logam + noise tipis
+    var hMetal = route(metal(250, 5.1, 32, 6000, 1.5, 0.05, 0.02), [filt("highpass", 6500, 0.7)], -24);
+    var hNoise = route(noise(0.04), [filt("highpass", 8000, 0.7)], -28);
+    var oMetal = route(metal(250, 5.1, 32, 5200, 1.5, 0.4, 0.25), [filt("highpass", 6500, 0.7)], -27);
+    var oNoise = route(noise(0.4), [filt("highpass", 7000, 0.7)], -31);
+
+    // ride dan crash
+    var rideM  = route(metal(420, 3.8, 22, 3600, 1.2, 1.0, 0.6), [filt("highpass", 3500, 0.7)], -29);
+    var crashM = route(metal(300, 5.1, 40, 3800, 1.6, 2.0, 1.4), [filt("highpass", 3000, 0.7)], -27, 0.2);
+    var crashN = route(noise(1.5), [filt("highpass", 5500, 0.7)], -33, 0.2);
+
+    function play(id, time, v) {
+      if (id === "kick") {
+        kBody.triggerAttackRelease("D1", "8n", time, v);
+        kKnock.triggerAttackRelease("F2", "16n", time, v);
+        kClick.triggerAttackRelease("64n", time, v);
+      } else if (id === "snare") {
+        sShell.triggerAttackRelease("G3", "16n", time, v);
+        sWires.triggerAttackRelease("16n", time, v);
+        sCrack.triggerAttackRelease("64n", time, v);
+      } else if (id === "rim") {
+        rNoise.triggerAttackRelease("64n", time, v);
+        rTone.triggerAttackRelease("B4", "64n", time, v);
+      } else if (id === "clap") {
+        var t = time === undefined ? Tone.now() : time;
+        clap.triggerAttackRelease("32n", t, 0.6 * v);
+        clap.triggerAttackRelease("32n", t + 0.011, 0.8 * v);
+        clap.triggerAttackRelease("16n", t + 0.022, v);
+      } else if (id === "tom") {
+        tBody.triggerAttackRelease("A2", "8n", time, v);
+        tClick.triggerAttackRelease("64n", time, v);
+      } else if (id === "hat") {
+        oMetal.triggerRelease(time); oNoise.triggerRelease(time);   // hat tertutup memotong hat terbuka
+        hMetal.triggerAttackRelease("32n", time, v);
+        hNoise.triggerAttackRelease("32n", time, v);
+      } else if (id === "open") {
+        oMetal.triggerAttackRelease("8n", time, v);
+        oNoise.triggerAttackRelease("8n", time, v);
+      } else if (id === "ride") {
+        rideM.triggerAttackRelease("8n", time, v);
+      } else if (id === "crash") {
+        crashM.triggerAttackRelease("2n", time, v);
+        crashN.triggerAttackRelease("2n", time, v);
+      }
+    }
+    return {
+      play: play,
+      ready: room && room.ready ? Promise.resolve(room.ready).catch(function () {}) : Promise.resolve(),
+      dispose: function () { nodes.forEach(function (n) { try { n.dispose(); } catch (e) {} }); }
+    };
+  }
+
+  function buildKitOld() {
+    var out = new Tone.Limiter(-1).toDestination();
+
+    var kick = new Tone.MembraneSynth({
+      pitchDecay: 0.045, octaves: 8, oscillator: { type: "sine" },
+      envelope: { attack: 0.001, decay: 0.42, sustain: 0.01, release: 1.2 }
+    });
+    kick.volume.value = -3; kick.connect(out);
+
+    var snareBody = new Tone.MembraneSynth({
+      pitchDecay: 0.01, octaves: 2,
+      envelope: { attack: 0.001, decay: 0.12, sustain: 0, release: 0.1 }
+    });
+    snareBody.volume.value = -14; snareBody.connect(out);
+
+    var snareTop = new Tone.NoiseSynth({
+      noise: { type: "white" }, envelope: { attack: 0.001, decay: 0.16, sustain: 0 }
+    });
+    snareTop.volume.value = -10;
+    snareTop.chain(new Tone.Filter(1400, "highpass"), out);
+
+    var rim = new Tone.NoiseSynth({
+      noise: { type: "white" }, envelope: { attack: 0.001, decay: 0.03, sustain: 0 }
+    });
+    rim.volume.value = -4;
+    rim.chain(new Tone.Filter({ type: "bandpass", frequency: 2200, Q: 3 }), out);
+
+    var clap = new Tone.NoiseSynth({
+      noise: { type: "white" }, envelope: { attack: 0.002, decay: 0.22, sustain: 0 }
+    });
+    clap.volume.value = -11;
+    clap.chain(new Tone.Filter({ type: "bandpass", frequency: 1100, Q: 1.4 }), out);
+
+    var tom = new Tone.MembraneSynth({
+      pitchDecay: 0.08, octaves: 2,
+      envelope: { attack: 0.001, decay: 0.3, sustain: 0, release: 0.4 }
+    });
+    tom.volume.value = -6; tom.connect(out);
+
+    var hat = new Tone.MetalSynth({
+      frequency: 250, envelope: { attack: 0.001, decay: 0.045, release: 0.01 },
+      harmonicity: 5.1, modulationIndex: 32, resonance: 6000, octaves: 1.5
+    });
+    hat.volume.value = -26; hat.connect(out);
+
+    var open = new Tone.MetalSynth({
+      frequency: 250, envelope: { attack: 0.001, decay: 0.38, release: 0.2 },
+      harmonicity: 5.1, modulationIndex: 32, resonance: 5000, octaves: 1.5
+    });
+    open.volume.value = -29; open.connect(out);
+
+    var ride = new Tone.MetalSynth({
+      frequency: 300, envelope: { attack: 0.001, decay: 0.6, release: 0.4 },
+      harmonicity: 5.1, modulationIndex: 20, resonance: 3500, octaves: 1.5
+    });
+    ride.volume.value = -30; ride.connect(out);
+
+    var crash = new Tone.MetalSynth({
+      frequency: 280, envelope: { attack: 0.001, decay: 1.6, release: 1.0 },
+      harmonicity: 5.1, modulationIndex: 32, resonance: 4000, octaves: 1.5
+    });
+    crash.volume.value = -28; crash.connect(out);
+
+    var k = { kick: kick, snareBody: snareBody, snareTop: snareTop, rim: rim, clap: clap, tom: tom,
+              hat: hat, open: open, ride: ride, crash: crash };
+
+    function play(id, time, v) {
+      if (id === "kick") k.kick.triggerAttackRelease("C1", "8n", time, v);
+      else if (id === "snare") {
+        k.snareBody.triggerAttackRelease("A2", "16n", time, v);
+        k.snareTop.triggerAttackRelease("16n", time, v);
+      } else if (id === "rim") k.rim.triggerAttackRelease("32n", time, v);
+      else if (id === "clap") {
+        var t = time === undefined ? Tone.now() : time;
+        k.clap.triggerAttackRelease("16n", t, 0.6 * v);
+        k.clap.triggerAttackRelease("16n", t + 0.013, 0.8 * v);
+        k.clap.triggerAttackRelease("8n", t + 0.026, v);
+      }
+      else if (id === "tom") k.tom.triggerAttackRelease("G2", "8n", time, v);
+      else if (id === "hat") k.hat.triggerAttackRelease("32n", time, v);
+      else if (id === "open") k.open.triggerAttackRelease("8n", time, v);
+      else if (id === "ride") k.ride.triggerAttackRelease("8n", time, v);
+      else if (id === "crash") k.crash.triggerAttackRelease("2n", time, v);
+    }
+    return {
+      play: play,
+      ready: Promise.resolve(),
+      dispose: function () {
+        [out].concat(Object.keys(k).map(function (n) { return k[n]; })).forEach(function (n) { try { n.dispose(); } catch (e) {} });
+      }
+    };
+  }
+
+
+  var KITS = { baru: buildKitNew, lama: buildKitOld };
+
+  // Kit "baru" dipanggang SEKALI jadi sampel (render offline), lalu diputar dengan satu AudioBufferSourceNode
+  // per pukulan. Memicu puluhan node synth di tiap pukulan membuat thread utama HP penuh dan not terlambat.
+  var BAKE_LEN = { kick: 0.9, snare: 0.9, rim: 0.35, clap: 0.9, tom: 1.0, hat: 0.35, open: 1.2, ride: 2.2, crash: 4.2 };
+
+  function bakeKitNew() {
+    var order = LANES.map(function (l) { return l.id; });
+    var starts = {}, total = 0;
+    order.forEach(function (id) { starts[id] = total; total += BAKE_LEN[id]; });
+    return Tone.Offline(function () {
+      var k = buildKitNew(true);
+      return k.ready.then(function () {
+        order.forEach(function (id) { k.play(id, starts[id] + 0.02, 1); });   // satu pukulan per lane, bergiliran
+      });
+    }, total + 0.1).then(function (rendered) {
+      var src = rendered.get ? rendered.get() : rendered;
+      var raw = Tone.getContext().rawContext;
+      var sr = src.sampleRate, chans = src.numberOfChannels, bufs = {};
+      order.forEach(function (id) {
+        var from = Math.round(starts[id] * sr), len = Math.round(BAKE_LEN[id] * sr);
+        var b = raw.createBuffer(chans, len, sr);
+        for (var c = 0; c < chans; c++) {
+          var out = b.getChannelData(c);
+          out.set(src.getChannelData(c).subarray(from, from + len));
+          var fade = Math.min(len, Math.round(0.02 * sr));   // fade-out 20 ms agar tidak ada klik di ujung sampel
+          for (var i = 0; i < fade; i++) out[len - 1 - i] *= i / fade;
+        }
+        bufs[id] = b;
+      });
+      return makeSampleKit(bufs);
+    });
+  }
+
+  function makeSampleKit(bufs) {
+    var raw = Tone.getContext().rawContext;
+    // master ringan (node bawaan browser): headroom -> kompresor -> limiter
+    var master = new Tone.Gain(0.8);
+    var comp = new Tone.Compressor({ threshold: -16, ratio: 4, attack: 0.004, release: 0.12, knee: 8 });
+    var lim = new Tone.Limiter(-1);
+    master.chain(comp, lim);
+    lim.toDestination();
+    var lastOpen = null;
+    function play(id, time, v) {
+      var buf = bufs[id];
+      if (!buf) return;
+      if (id === "hat" && lastOpen) {   // hat tertutup memotong hat terbuka
+        try { lastOpen.setTargetAtTime(0, time, 0.01); } catch (e) { /* abaikan */ }
+        lastOpen = null;
+      }
+      var src = raw.createBufferSource();
+      src.buffer = buf;
+      var g = raw.createGain();
+      g.gain.value = v;
+      src.connect(g);
+      Tone.connect(g, master);
+      src.start(time);
+      if (id === "open") lastOpen = g.gain;
+    }
+    return {
+      play: play,
+      bufs: bufs,
+      ready: Promise.resolve(),
+      dispose: function () { try { master.dispose(); comp.dispose(); lim.dispose(); } catch (e) { /* abaikan */ } }
+    };
+  }
+
+  // seq = true untuk not dari sequencer (humanize hanya berlaku di sana, bukan saat audisi)
+  function hit(id, time, level, seq) {
+    if (!kit) return;
+    var v = VEL[level] || VEL[1];
+    if (seq && humanize) v = v * (1 - Math.random() * (HUM[id] || 0.06));
+    // audisi (tanpa waktu dari sequencer): bunyikan segera, tanpa menunggu lookAhead yang sengaja dibuat panjang
+    if (time === undefined) time = (Tone.immediate ? Tone.immediate() : Tone.context.currentTime) + 0.005;
+    kit.play(id, time, v);
+  }
+
+  function setCell(c, lane, index, v) {
+    c.dataset.v = String(v);
+    c.setAttribute("aria-pressed", v ? "true" : "false");
+    c.setAttribute("aria-label", lane.label + " langkah " + (index + 1) + ", " + LEVEL_NAME[v]);
+  }
+
+  // ---------- grid DOM ----------
+  var ruler = document.getElementById("ruler");
+  for (var r = 0; r < STEPS; r++) {
+    var rs = document.createElement("span");
+    if (r % 4 === 0) { rs.className = "beat"; rs.textContent = String(r / 4 + 1); }
+    else rs.textContent = "\u00B7";
+    ruler.appendChild(rs);
+  }
+
+  var lastLit = [];
+  function clearFlash() {
+    lastLit.forEach(function (c) { c.classList.remove("flash"); });
+    lastLit = [];
+  }
+
+  var lanesEl = document.getElementById("lanes");
+  LANES.forEach(function (lane) {
+    var wrap = document.createElement("div");
+    wrap.className = "lane";
+    wrap.style.setProperty("--hue", lane.hue);
+
+    var name = document.createElement("button");
+    name.className = "name"; name.type = "button"; name.textContent = lane.label;
+    name.setAttribute("aria-label", "Dengarkan " + lane.label);
+    name.addEventListener("click", function () { ensureAudio().then(function () { hit(lane.id); }).catch(function () {}); });
+    wrap.appendChild(name);
+
+    var row = document.createElement("div");
+    row.className = "row16";
+    cells[lane.id] = [];
+    for (var i = 0; i < STEPS; i++) {
+      (function (index) {
+        var c = document.createElement("button");
+        c.className = "cell" + (index % 4 === 0 ? " down" : "");
+        c.type = "button";
+        setCell(c, lane, index, 0);
+        function put(next) {
+          var sec = active(); if (!sec) return;
+          editTargets(sec).forEach(function (bi) { sec.patterns[bi][lane.id][index] = next; });
+          setCell(c, lane, index, next);
+          if (next && !running) ensureAudio().then(function () { hit(lane.id, undefined, next); }).catch(function () {});
+          renderCode(); save();
+        }
+        c.addEventListener("click", function (ev) {
+          var sec = active(); if (!sec) return;
+          var cur = sec.patterns[curBar][lane.id][index];
+          var next = ev.shiftKey ? (cur === 2 ? 0 : 2) : (ev.altKey ? (cur === 3 ? 0 : 3) : CYCLE[cur]);
+          put(next);
+        });
+        c.addEventListener("contextmenu", function (ev) { ev.preventDefault(); put(0); });
+        row.appendChild(c);
+        cells[lane.id].push(c);
+      })(i);
+    }
+    wrap.appendChild(row);
+    lanesEl.appendChild(wrap);
+  });
+
+  function paint() {
+    var sec = active(); if (!sec) return;
+    clearFlash();
+    var pat = sec.patterns[curBar];
+    LANES.forEach(function (l) {
+      for (var i = 0; i < STEPS; i++) {
+        setCell(cells[l.id][i], l, i, pat[l.id][i]);
+      }
+    });
+  }
+
+  // ---------- section UI ----------
+  var tabsEl = document.getElementById("tabs");
+  var nameEl = document.getElementById("secName");
+  var barsEl = document.getElementById("secBars");
+  var delBtn = document.getElementById("del");
+  var arrEl = document.getElementById("arr");
+  var addRow = document.getElementById("addrow");
+  var totalEl = document.getElementById("total");
+  var statusEl = document.getElementById("status");
+  var barbar = document.getElementById("barbar");
+  var bartabs = document.getElementById("bartabs");
+  var linkedEl = document.getElementById("linked");
+  var copyNextBtn = document.getElementById("copyNext");
+
+  BAR_CHOICES.forEach(function (n) {
+    var o = document.createElement("option");
+    o.value = String(n); o.textContent = String(n);
+    barsEl.appendChild(o);
+  });
+
+  function renderTabs() {
+    tabsEl.textContent = "";
+    sections.forEach(function (s) {
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "chip" + (s.id === activeId ? " on" : "");
+      b.textContent = s.name || "(tanpa nama)";
+      b.setAttribute("aria-pressed", s.id === activeId ? "true" : "false");
+      b.addEventListener("click", function () { setActive(s.id); });
+      tabsEl.appendChild(b);
+    });
+    var add = document.createElement("button");
+    add.type = "button"; add.className = "chip ghost"; add.textContent = "+ section";
+    add.addEventListener("click", addSection);
+    tabsEl.appendChild(add);
+  }
+
+  function renderSecControls() {
+    var sec = active(); if (!sec) return;
+    nameEl.value = sec.name;
+    if (BAR_CHOICES.indexOf(sec.bars) < 0) {
+      var o = document.createElement("option");
+      o.value = String(sec.bars); o.textContent = String(sec.bars);
+      barsEl.appendChild(o);
+    }
+    barsEl.value = String(sec.bars);
+    delBtn.disabled = sections.length < 2;
+  }
+
+  function renderBarTabs() {
+    var sec = active(); if (!sec) return;
+    barbar.style.display = sec.bars > 1 ? "flex" : "none";
+    bartabs.textContent = "";
+    for (var i = 0; i < sec.bars; i++) {
+      (function (bi) {
+        var b = document.createElement("button");
+        b.type = "button"; b.dataset.bar = String(bi);
+        b.className = "chip" + (bi === curBar ? " on" : "");
+        b.textContent = String(bi + 1);
+        b.setAttribute("aria-label", "Edit bar " + (bi + 1));
+        b.setAttribute("aria-pressed", bi === curBar ? "true" : "false");
+        b.addEventListener("click", function () {
+          curBar = bi; paint(); renderBarTabs();
+          head.classList.remove("live");
+        });
+        bartabs.appendChild(b);
+      })(i);
+    }
+    linkedEl.checked = linked;
+    copyNextBtn.disabled = linked || curBar >= sec.bars - 1;
+  }
+
+  function markBar(idx) {
+    Array.prototype.forEach.call(bartabs.querySelectorAll(".chip"), function (el) {
+      el.classList.toggle("now", parseInt(el.dataset.bar, 10) === idx);
+    });
+  }
+
+  function setActive(id) {
+    var sec = byId(id); if (!sec) return;
+    activeId = id; curBar = 0; linked = allSame(sec);
+    paint(); renderTabs(); renderSecControls(); renderBarTabs(); save();
+  }
+
+  function addSection() {
+    var s = makeSection("section " + (sections.length + 1), repeatPat(emptyPattern(), 2));
+    sections.push(s);
+    setActive(s.id);
+    structureChanged();
+  }
+
+  nameEl.addEventListener("input", function () {
+    var sec = active(); if (!sec) return;
+    sec.name = nameEl.value.slice(0, 16);
+    structureChanged();
+  });
+  barsEl.addEventListener("change", function () {
+    var sec = active(); if (!sec) return;
+    var n = parseInt(barsEl.value, 10);
+    if (n >= 1 && n <= 16) {
+      setBars(sec, n);
+      paint(); renderBarTabs(); structureChanged();
+    }
+  });
+  // window.confirm() diblokir di tampilan artifact (sandbox tanpa allow-modals) dan langsung dianggap batal,
+  // jadi konfirmasi dibuat di dalam halaman: ketuk dua kali dalam 4 detik.
+  function twoTap(btn, armedLabel, action) {
+    var idle = btn.textContent, armed = false, timer = null;
+    btn.addEventListener("click", function () {
+      if (!armed) {
+        armed = true; btn.textContent = armedLabel; btn.classList.add("on");
+        timer = setTimeout(function () { armed = false; btn.textContent = idle; btn.classList.remove("on"); }, 4000);
+        return;
+      }
+      clearTimeout(timer); armed = false; btn.textContent = idle; btn.classList.remove("on");
+      action();
+    });
+  }
+  var linkedText = document.getElementById("linkedText");
+  var LINK_IDLE = "ubah semua bar bersamaan";
+  var linkArm = { at: 0, bar: -1, sec: "" };
+  var linkTimer = null;
+  linkedEl.addEventListener("change", function () {
+    var sec = active(); if (!sec) return;
+    if (linkedEl.checked) {
+      if (!allSame(sec)) {
+        var nowT = Date.now();
+        if (!(linkArm.sec === sec.id && linkArm.bar === curBar && nowT - linkArm.at < 5000)) {
+          linkArm = { at: nowT, bar: curBar, sec: sec.id };
+          linkedEl.checked = false;
+          linkedText.textContent = "centang lagi untuk menimpa bar lain dengan bar " + (curBar + 1);
+          clearTimeout(linkTimer);
+          linkTimer = setTimeout(function () { linkedText.textContent = LINK_IDLE; }, 5000);
+          return;
+        }
+        clearTimeout(linkTimer);
+        linkArm = { at: 0, bar: -1, sec: "" };
+        linkedText.textContent = LINK_IDLE;
+        var src = sec.patterns[curBar];
+        for (var i = 0; i < sec.patterns.length; i++) sec.patterns[i] = copyPattern(src);
+        renderCode(); save();
+      }
+      linked = true;
+    } else {
+      linked = false;
+    }
+    renderBarTabs();
+  });
+  copyNextBtn.addEventListener("click", function () {
+    var sec = active(); if (!sec || curBar >= sec.bars - 1) return;
+    sec.patterns[curBar + 1] = copyPattern(sec.patterns[curBar]);
+    curBar++;
+    paint(); renderBarTabs(); renderCode(); save();
+  });
+  // lembar baru: satu section kosong 4 bar, urutan berisi section itu; tempo dan swing tetap
+  // contoh lagu band: mengganti seluruh lagu dan tempo (konfirmasi dua ketukan)
+  var BAND_SONG = {"format": "drumkode/pattern", "name": "contoh band", "bpm": 118, "swing": 0, "sections": [{"name": "intro", "patterns": [{"hat": "x.x.x.x.x.x.x.x.", "kick": "x.......x.......", "rim": "....x.......x..."}, {"hat": "x.x.x.x.x.x.x.x.", "kick": "x.......x.......", "rim": "....x.......x..."}]}, {"name": "verse", "bars": 4, "pattern": {"kick": "x.....x.x.......", "snare": "....x.......x...", "hat": "X.x.X.x.X.x.X.x."}}, {"name": "pre-chorus", "patterns": [{"kick": "x.......x.......", "snare": "....x.......x...", "hat": "x.x.x.x.x.x.x.x."}, {"kick": "x.......x.......", "snare": "....x.......x...", "hat": "x.x.x.x.x.x.x.x."}, {"kick": "x.......x.......", "snare": "....x.......x...", "hat": "x.x.x.x.x.x.x.x."}, {"kick": "x.......x.......", "snare": "....x...ooxxxxXX", "hat": "x.x.x.x........."}]}, {"name": "chorus", "patterns": [{"crash": "X...............", "ride": "X.x.X.x.X.x.X.x.", "kick": "x.....x.x.x.....", "snare": "....x.......x..."}, {"ride": "X.x.X.x.X.x.X.x.", "kick": "x.....x.x.x.....", "snare": "....x.......x..."}, {"ride": "X.x.X.x.X.x.X.x.", "kick": "x.....x.x.x.....", "snare": "....x.......x..."}, {"ride": "X.x.X.x.X.x.....", "kick": "x.....x.x.x.....", "snare": "....x...x.x.xxXX"}]}, {"name": "bridge", "bars": 4, "pattern": {"kick": "x.....x.........", "snare": "........x.......", "hat": "x.x.x.x.x.x.x.x."}}, {"name": "outro", "bars": 1, "pattern": {"crash": "X...............", "kick": "X...............", "snare": "X..............."}}], "arrangement": ["intro", "verse", "pre-chorus", "chorus", "verse", "pre-chorus", "chorus", "bridge", "chorus", "outro"]};
+  twoTap(document.getElementById("bandSample"), "ketuk lagi untuk mengganti lagu & tempo", function () {
+    var res = parseJsonImport(JSON.stringify(BAND_SONG));
+    if (res.errors.length) { showImport(res); return; }
+    if (running) stopPlayback();
+    pending = res.project;
+    applyImport("replace", true);
+  });
+  twoTap(document.getElementById("newSheet"), "ketuk lagi untuk menghapus semua", function () {
+    if (running) stopPlayback();
+    var s = makeSection("section 1", repeatPat(emptyPattern(), 4));
+    sections = [s];
+    arrangement = [s.id];
+    setActive(s.id);
+    structureChanged();
+    impOut.textContent = ""; pending = null;
+  });
+  document.getElementById("dup").addEventListener("click", function () {
+    var sec = active(); if (!sec) return;
+    var c = makeSection((sec.name + " 2").slice(0, 16), sec.patterns);
+    sections.splice(sections.indexOf(sec) + 1, 0, c);
+    setActive(c.id);
+    structureChanged();
+  });
+  delBtn.addEventListener("click", function () {
+    if (sections.length < 2) return;
+    var sec = active(); if (!sec) return;
+    sections = sections.filter(function (s) { return s.id !== sec.id; });
+    arrangement = arrangement.filter(function (id) { return id !== sec.id; });
+    setActive(sections[0].id);
+    structureChanged();
+  });
+
+  // ---------- arrangement UI ----------
+  function mkMini(text, label, disabled, fn) {
+    var b = document.createElement("button");
+    b.type = "button"; b.className = "mini"; b.textContent = text;
+    b.setAttribute("aria-label", label); b.disabled = !!disabled;
+    b.addEventListener("click", fn);
+    return b;
+  }
+
+  function renderArr() {
+    arrEl.textContent = "";
+    if (!arrangement.length) {
+      var e = document.createElement("span");
+      e.className = "arr-empty";
+      e.textContent = "Urutan kosong. Tambahkan section di bawah.";
+      arrEl.appendChild(e);
+    }
+    arrangement.forEach(function (id, k) {
+      var s = byId(id); if (!s) return;
+      var item = document.createElement("div");
+      item.className = "arr-item"; item.dataset.idx = String(k);
+
+      var nm = document.createElement("button");
+      nm.type = "button"; nm.className = "arr-name";
+      nm.textContent = (k + 1) + ". " + s.name + " \u00B7 " + s.bars + " bar";
+      nm.addEventListener("click", function () { setActive(s.id); });
+      item.appendChild(nm);
+
+      item.appendChild(mkMini("\u2039", "Geser ke kiri", k === 0, function () { moveArr(k, -1); }));
+      item.appendChild(mkMini("\u203A", "Geser ke kanan", k === arrangement.length - 1, function () { moveArr(k, 1); }));
+      item.appendChild(mkMini("\u2715", "Hapus dari urutan", false, function () {
+        arrangement.splice(k, 1); structureChanged();
+      }));
+      arrEl.appendChild(item);
+    });
+
+    addRow.textContent = "";
+    var tag = document.createElement("span");
+    tag.className = "tag"; tag.textContent = "tambah ke urutan:";
+    addRow.appendChild(tag);
+    sections.forEach(function (s) {
+      var b = document.createElement("button");
+      b.type = "button"; b.className = "chip"; b.textContent = "+ " + (s.name || "(tanpa nama)");
+      b.addEventListener("click", function () { arrangement.push(s.id); structureChanged(); });
+      addRow.appendChild(b);
+    });
+    markNow(-1);
+  }
+
+  function moveArr(k, dir) {
+    var j = k + dir;
+    if (j < 0 || j >= arrangement.length) return;
+    var t = arrangement[k]; arrangement[k] = arrangement[j]; arrangement[j] = t;
+    structureChanged();
+  }
+
+  function markNow(idx) {
+    Array.prototype.forEach.call(arrEl.querySelectorAll(".arr-item"), function (el) {
+      el.classList.toggle("now", parseInt(el.dataset.idx, 10) === idx);
+    });
+  }
+
+  function totalBars() {
+    var n = 0;
+    arrangement.forEach(function (id) { var s = byId(id); if (s) n += s.bars; });
+    return n;
+  }
+  function fmtTime(sec) {
+    var m = Math.floor(sec / 60), s = Math.round(sec % 60);
+    if (s === 60) { m++; s = 0; }
+    return m + ":" + (s < 10 ? "0" : "") + s;
+  }
+  function renderTotal() {
+    var bars = totalBars();
+    var secs = bars * 4 * 60 / bpm;
+    totalEl.textContent = "";
+    var b = document.createElement("b");
+    b.textContent = bars + " bar";
+    totalEl.appendChild(b);
+    totalEl.appendChild(document.createTextNode(" \u00B7 " + fmtTime(secs) + " pada " + bpm + " bpm"));
+    if (!running) idleStatus();
+  }
+
+  function idleStatus() {
+    statusEl.textContent = "Siap. \"Putar section\" memutar section terpilih berulang; \"Putar lagu\" memutar urutan dari awal.";
+  }
+
+  function structureChanged() {
+    renderTabs(); renderArr(); renderTotal(); renderCode(); save();
+    if (running === "song") markNow(-1);
+  }
+
+  // ---------- presets ----------
+  Array.prototype.forEach.call(document.querySelectorAll("[data-preset]"), function (b) {
+    b.addEventListener("click", function () {
+      var sec = active(); var p = PRESETS[b.dataset.preset];
+      if (!sec || !p) return;
+      editTargets(sec).forEach(function (bi) { sec.patterns[bi] = copyPattern(p); });
+      paint(); renderCode(); save();
+    });
+  });
+  document.getElementById("clear").addEventListener("click", function () {
+    var sec = active(); if (!sec) return;
+    editTargets(sec).forEach(function (bi) { sec.patterns[bi] = emptyPattern(); });
+    paint(); renderCode(); save();
+  });
+
+  // ---------- audio + playback ----------
+  var kits = {};
+  var bakeP = null;
+  function ensureAudio() {
+    if (ready) return Promise.resolve();
+    return Tone.start().then(function () {
+      if (ready) return;
+      try {
+        // Jendela penjadwalan lebih longgar: lebih tahan scroll dan beban halaman.
+        // Konteks audio sengaja TIDAK diganti: Tone.Transport terikat pada konteks bawaan.
+        try { (Tone.getContext ? Tone.getContext() : Tone.context).lookAhead = 0.3; } catch (e) { /* abaikan */ }
+
+        // Kit lama (satu synth per lane) siap seketika. Kit baru dipanggang jadi sampel di latar belakang
+        // (render offline sekali), lalu diputar dengan satu node per pukulan: jauh lebih ringan untuk thread utama.
+        // Kegagalan satu kit tidak boleh mematikan audio.
+        var problems = [];
+        try { kits.lama = buildKitOld(); } catch (e) { kits.lama = null; problems.push("kit lama: " + ((e && e.message) || e)); }
+        kits.baru = null;
+        kit = kits.lama;
+        if (!kit) throw new Error(problems.join("; ") || "tidak ada kit suara");
+        if (kitName === "baru") statusEl.textContent = "Menyiapkan suara baru (dipanggang jadi sampel)...";
+
+        Tone.Transport.bpm.value = bpm;
+        Tone.Transport.swingSubdivision = "16n";
+        Tone.Transport.swing = swing / 100;
+        Tone.Transport.scheduleRepeat(tick, "16n");
+        ready = true;
+
+        bakeP = Promise.resolve().then(bakeKitNew).then(function (k) {   // galat sinkron pun jadi penolakan promise
+          kits.baru = k;
+          if (kitName === "baru") { kit = k; statusEl.textContent = "Suara baru siap."; }
+        }, function (e) {
+          kits.baru = null;
+          statusEl.textContent = "Kit baru gagal disiapkan (" + ((e && e.message) || e) + "); memakai kit lama.";
+          console.error(e);
+        });
+      } catch (e) {
+        statusEl.textContent = "Audio gagal dimulai: " + ((e && e.message) || e);
+        console.error(e);
+        throw e;
+      }
+    });
+  }
+
+  function locateSection(n) {
+    var sec = active(); if (!sec) return null;
+    return { secId: sec.id, arrIdx: -1, bar: Math.floor(n / STEPS) % sec.bars, bars: sec.bars, i: n % STEPS };
+  }
+  function locateSong(n) {
+    var total = 0;
+    arrangement.forEach(function (id) { var s = byId(id); if (s) total += s.bars * STEPS; });
+    if (!total) return null;
+    var pos = n % total;
+    for (var k = 0; k < arrangement.length; k++) {
+      var s = byId(arrangement[k]); if (!s) continue;
+      var len = s.bars * STEPS;
+      if (pos < len) {
+        var inSec = pos;
+        return { secId: s.id, arrIdx: k, bar: Math.floor(inSec / STEPS), bars: s.bars, i: inSec % STEPS };
+      }
+      pos -= len;
+    }
+    return null;
+  }
+
+  function tickBody(time) {
+    if (!running) return;
+    var loc = running === "song" ? locateSong(step) : locateSection(step);
+    if (!loc) { Tone.Draw.schedule(stopPlayback, time); return; }
+    var sec = byId(loc.secId);
+    var pat = sec && sec.patterns[loc.bar];
+    if (pat) {
+      LANES.forEach(function (l) { var lvl = pat[l.id][loc.i]; if (lvl) hit(l.id, time, lvl, true); });
+    }
+    Tone.Draw.schedule(function () { showPos(loc); }, time);
+    step++;
+  }
+
+  // Pembungkus: saat monitor diagnosa aktif, ukur keterlambatan jadwal dan lama eksekusi tiap step.
+  function tick(time) {
+    if (!diag.on) { tickBody(time); return; }
+    var t0 = performance.now();
+    try {
+      var nowT = Tone.immediate ? Tone.immediate() : Tone.context.currentTime;
+      var late = (nowT - time) * 1000;
+      diag.ticks++;
+      if (late > 0) { diag.late++; if (late > diag.lateMax) diag.lateMax = late; }
+    } catch (e) { /* abaikan */ }
+    try { tickBody(time); }
+    finally {
+      var cost = performance.now() - t0;
+      diag.costSum += cost; if (cost > diag.costMax) diag.costMax = cost;
+    }
+  }
+
+  var head = document.getElementById("playhead");
+  var lastStatusKey = "";
+  function showPos(loc) {
+    if (!running) return;
+    if (running === "song") {
+      if (loc.secId !== activeId) setActive(loc.secId);
+      if (loc.secId === activeId && curBar !== loc.bar) {
+        curBar = loc.bar; paint(); renderBarTabs();
+      }
+    }
+    var sec = byId(loc.secId);
+    var onView = loc.secId === activeId && loc.bar === curBar;
+    head.classList.toggle("live", onView);
+    head.style.setProperty("--i", loc.i);
+    clearFlash();
+    if (sec && onView) {
+      var pat = sec.patterns[loc.bar];
+      LANES.forEach(function (l) {
+        if (pat[l.id][loc.i]) {
+          var c = cells[l.id][loc.i];
+          c.classList.add("flash"); lastLit.push(c);
+        }
+      });
+    }
+    markBar(loc.secId === activeId ? loc.bar : -1);
+    markNow(loc.arrIdx);
+    var statusKey = loc.secId + "|" + loc.bar + "|" + loc.arrIdx + "|" + running;
+    if (statusKey === lastStatusKey) return;
+    lastStatusKey = statusKey;
+    statusEl.textContent = "";
+    var b = document.createElement("b");
+    b.textContent = sec ? sec.name : "";
+    statusEl.appendChild(b);
+    statusEl.appendChild(document.createTextNode(
+      " \u00B7 bar " + (loc.bar + 1) + "/" + loc.bars +
+      (running === "song" ? " \u00B7 bagian " + (loc.arrIdx + 1) + "/" + arrangement.length : " \u00B7 loop")
+    ));
+  }
+
+  var btnSec = document.getElementById("playSec");
+  var btnSong = document.getElementById("playSong");
+
+  function setButtons() {
+    lastStatusKey = "";
+    btnSec.dataset.on = running === "section" ? "1" : "0";
+    btnSong.dataset.on = running === "song" ? "1" : "0";
+    btnSec.textContent = running === "section" ? "Stop" : "Putar section";
+    btnSong.textContent = running === "song" ? "Stop" : "Putar lagu";
+  }
+
+  function stopPlayback() {
+    if (ready) Tone.Transport.stop();
+    running = null; step = 0;
+    head.classList.remove("live");
+    clearFlash(); markNow(-1); markBar(-1); setButtons(); idleStatus();
+  }
+
+  function startPlayback(mode) {
+    if (mode === "song" && !arrangement.length) {
+      statusEl.textContent = "Urutan lagu masih kosong. Tambahkan section dulu.";
+      return;
+    }
+    ensureAudio().then(function () {
+      if (running) Tone.Transport.stop();
+      step = 0;
+      running = mode;
+      if (mode === "song") {
+        var first = locateSong(0);
+        if (first && first.secId !== activeId) setActive(first.secId);
+        else if (first && curBar !== 0) { curBar = 0; paint(); renderBarTabs(); }
+      }
+      Tone.Transport.start();
+      setButtons();
+    }).catch(function (e) {
+      statusEl.textContent = "Audio gagal dimulai. Coba ketuk lagi.";
+      console.error(e);
+    });
+  }
+
+  btnSec.addEventListener("click", function () {
+    if (running === "section") stopPlayback(); else startPlayback("section");
+  });
+  btnSong.addEventListener("click", function () {
+    if (running === "song") stopPlayback(); else startPlayback("song");
+  });
+
+  // ---------- dials ----------
+  var bpmEl = document.getElementById("bpm"), bpmV = document.getElementById("bpmv");
+  var swEl = document.getElementById("swing"), swV = document.getElementById("swingv");
+  bpmEl.addEventListener("input", function () {
+    bpm = parseInt(bpmEl.value, 10); bpmV.textContent = bpm;
+    if (ready) Tone.Transport.bpm.value = bpm;
+    renderTotal(); renderCode(); save();
+  });
+  swEl.addEventListener("input", function () {
+    swing = parseInt(swEl.value, 10); swV.textContent = swing;
+    if (ready) Tone.Transport.swing = swing / 100;
+    renderCode(); save();
+  });
+
+  var kitSel = document.getElementById("kitSel");
+  var humEl = document.getElementById("humanize");
+  kitSel.addEventListener("change", function () {
+    kitName = kitSel.value === "lama" ? "lama" : "baru";
+    if (ready) kit = kits[kitName] || kit;   // hanya berpindah penunjuk, tanpa membangun ulang
+    save();
+  });
+  humEl.addEventListener("change", function () { humanize = humEl.checked; save(); });
+
+  // <parse-start>
+  var LANE_ALIAS = {
+    kick: "kick", bd: "kick", bassdrum: "kick",
+    snare: "snare", sd: "snare",
+    rim: "rim", rimshot: "rim", rimclick: "rim", sidestick: "rim", stick: "rim",
+    clap: "clap", cp: "clap",
+    tom: "tom", toms: "tom", tomtom: "tom", tt: "tom",
+    hat: "hat", hihat: "hat", hh: "hat", closedhat: "hat", ch: "hat",
+    open: "open", openhat: "open", oh: "open", ohat: "open",
+    ride: "ride", rd: "ride",
+    crash: "crash", cr: "crash", cc: "crash"
+  };
+  function normLane(k) {
+    return LANE_ALIAS[String(k).toLowerCase().replace(/[^a-z]/g, "")] || null;
+  }
+
+  // "x..x" atau [1,0,0,1] -> {steps:[...]} atau {err:"..."}
+  function laneToSteps(v) {
+    var out = [];
+    if (typeof v === "string") {
+      var s = v.replace(/[\s|,]/g, "");
+      if (s.length !== STEPS) return { err: "panjang " + s.length + " karakter, harus " + STEPS };
+      for (var i = 0; i < s.length; i++) {
+        var ch = s.charAt(i);
+        if ("x1O".indexOf(ch) >= 0) out.push(1);
+        else if (ch === "X") out.push(2);
+        else if (ch === "o") out.push(3);
+        else if (".-_0".indexOf(ch) >= 0) out.push(0);
+        else return { err: "karakter '" + ch + "' tidak dikenal (x normal, X aksen, o ghost, . diam)" };
+      }
+    } else if (Array.isArray(v)) {
+      if (v.length !== STEPS) return { err: "array berisi " + v.length + " nilai, harus " + STEPS };
+      out = v.map(function (x) {
+        var n = Number(x);
+        if (x === true) return 1;
+        if (n === 2) return 2;
+        if (n === 3) return 3;
+        return n > 0 ? 1 : 0;
+      });
+    } else {
+      return { err: "harus string 16 karakter atau array 16 angka" };
+    }
+    return { steps: out };
+  }
+
+  function clampNum(raw, min, max, label, warnings) {
+    var n = Number(raw);
+    if (!isFinite(n)) { warnings.push(label + " tidak valid, diabaikan."); return null; }
+    n = Math.round(n);
+    var c = Math.min(max, Math.max(min, n));
+    if (c !== n) warnings.push(label + " " + n + " di luar " + min + "\u2013" + max + ", dibatasi ke " + c + ".");
+    return c;
+  }
+
+  // objek {lane: "x..."} -> pola utuh, atau null kalau ada error
+  function parsePatternObj(obj, label, errors, warnings, seen) {
+    if (!obj || typeof obj !== "object" || Array.isArray(obj)) {
+      errors.push(label + ": pola harus berupa objek {lane: \"x...\"}.");
+      return null;
+    }
+    var keys = Object.keys(obj), pat = emptyPattern(), found = 0, bad = 0;
+    keys.forEach(function (k) {
+      var lane = normLane(k);
+      if (!lane) {
+        if (!seen[k]) {
+          seen[k] = 1;
+          warnings.push(label.split(" bar ")[0] + ": lane \"" + k + "\" diabaikan (tersedia: kick, snare, rim, clap, tom, hat, open, ride, crash).");
+        }
+        return;
+      }
+      var r = laneToSteps(obj[k]);
+      if (r.err) { errors.push(label + " / " + k + ": " + r.err); bad++; return; }
+      pat[lane] = r.steps; found++;
+    });
+    if (keys.length && !found && !bad) { errors.push(label + ": tidak ada lane yang dikenali."); return null; }
+    return bad ? null : pat;
+  }
+
+  function parseJsonImport(text) {
+    var errors = [], warnings = [], d;
+    try { d = JSON.parse(text); }
+    catch (e) { return { errors: ["JSON tidak valid: " + e.message], warnings: [] }; }
+    if (!d || typeof d !== "object" || Array.isArray(d)) {
+      return { errors: ["Root harus berupa objek JSON."], warnings: [] };
+    }
+    if (d.format && d.format !== "drumkode/pattern") {
+      warnings.push("format \"" + d.format + "\" tidak dikenal; tetap dicoba dibaca.");
+    }
+    var rawSecs = Array.isArray(d.sections) ? d.sections : ((d.pattern || d.patterns) ? [d] : null);
+    if (!rawSecs || !rawSecs.length) {
+      return { errors: ["Tidak ada \"sections\" (atau \"pattern\") di JSON."], warnings: warnings };
+    }
+    if (rawSecs.length > 32) {
+      warnings.push("Hanya 32 section pertama yang dibaca.");
+      rawSecs = rawSecs.slice(0, 32);
+    }
+
+    var secs = [];
+    rawSecs.forEach(function (rs, idx) {
+      var label = "section " + (idx + 1);
+      if (!rs || typeof rs !== "object") { errors.push(label + ": bukan objek."); return; }
+      var name = (typeof rs.name === "string" && rs.name.trim()) ? rs.name.trim().slice(0, 16) : label;
+      label = "\"" + name + "\"";
+      var seen = {}, pats = [];
+
+      if (Array.isArray(rs.patterns)) {
+        if (!rs.patterns.length) { errors.push(label + ": \"patterns\" kosong."); return; }
+        var list = rs.patterns;
+        if (list.length > 16) {
+          warnings.push(label + ": hanya 16 bar pertama yang dibaca.");
+          list = list.slice(0, 16);
+        }
+        if (rs.bars !== undefined && Number(rs.bars) !== list.length) {
+          warnings.push(label + ": \"bars\" diabaikan, dipakai jumlah \"patterns\" (" + list.length + ").");
+        }
+        var okAll = true;
+        list.forEach(function (po, bi) {
+          var pp = parsePatternObj(po, label + " bar " + (bi + 1), errors, warnings, seen);
+          if (!pp) okAll = false; else pats.push(pp);
+        });
+        if (!okAll) return;
+      } else if (rs.pattern !== undefined) {
+        var bars = 1;
+        if (rs.bars !== undefined) {
+          var bn = Number(rs.bars);
+          if (!isFinite(bn) || bn < 1) warnings.push(label + ": bars tidak valid, dipakai 1.");
+          else {
+            bars = Math.min(16, Math.round(bn));
+            if (bn > 16) warnings.push(label + ": bars dibatasi 16.");
+          }
+        }
+        var one = parsePatternObj(rs.pattern, label, errors, warnings, seen);
+        if (!one) return;
+        for (var b = 0; b < bars; b++) pats.push(copyPattern(one));
+      } else {
+        errors.push(label + ": \"pattern\" atau \"patterns\" tidak ada.");
+        return;
+      }
+      secs.push({ name: name, bars: pats.length, patterns: pats });
+    });
+
+    var arr = [];
+    if (Array.isArray(d.arrangement) && d.arrangement.length) {
+      d.arrangement.slice(0, 128).forEach(function (n) {
+        var key = String(n).trim().toLowerCase(), hit = -1;
+        for (var i = 0; i < secs.length; i++) {
+          if (secs[i].name.toLowerCase() === key) { hit = i; break; }
+        }
+        if (hit < 0) errors.push("arrangement: section \"" + n + "\" tidak ditemukan.");
+        else arr.push(hit);
+      });
+    } else {
+      secs.forEach(function (s, i) { arr.push(i); });
+    }
+
+    if (errors.length) return { errors: errors, warnings: warnings };
+    return {
+      errors: [], warnings: warnings,
+      project: {
+        name: typeof d.name === "string" ? d.name.slice(0, 40) : "",
+        bpm: d.bpm === undefined ? null : clampNum(d.bpm, 60, 180, "bpm", warnings),
+        swing: d.swing === undefined ? null : clampNum(d.swing, 0, 60, "swing", warnings),
+        sections: secs, arr: arr
+      }
+    };
+  }
+
+  function midiToProject(buf, fileName) {
+    var errors = [], warnings = [], dv, p = 0;
+    var notes = [], tempo = null, tsig = null, tpb = 0;
+    try {
+      dv = new DataView(buf);
+      if (dv.byteLength < 14 || dv.getUint32(0) !== 0x4D546864) {
+        return { errors: ["Bukan file MIDI yang valid."], warnings: [] };
+      }
+      var hlen = dv.getUint32(4), ntrks = dv.getUint16(10), div = dv.getUint16(12);
+      if (div & 0x8000) return { errors: ["MIDI dengan timing SMPTE belum didukung."], warnings: [] };
+      tpb = div;
+      if (!tpb) return { errors: ["Resolusi MIDI (ticks per beat) tidak valid."], warnings: [] };
+      p = 8 + hlen;
+      for (var t = 0; t < ntrks; t++) {
+        if (p + 8 > dv.byteLength) break;
+        if (dv.getUint32(p) !== 0x4D54726B) { errors.push("Struktur track MIDI rusak."); break; }
+        var tlen = dv.getUint32(p + 4); p += 8;
+        var end = Math.min(p + tlen, dv.byteLength), tick = 0, running = 0, b;
+        while (p < end) {
+          var delta = 0;
+          do { b = dv.getUint8(p++); delta = delta * 128 + (b & 0x7F); } while ((b & 0x80) && p < end);
+          tick += delta;
+          var st = dv.getUint8(p);
+          if (st < 0x80) {
+            st = running;
+            if (!st) throw new RangeError("running status tanpa status");
+          } else {
+            p++;
+            if (st < 0xF0) running = st;
+          }
+          if (st === 0xFF) {
+            var mt = dv.getUint8(p++), ml = 0;
+            do { b = dv.getUint8(p++); ml = ml * 128 + (b & 0x7F); } while ((b & 0x80) && p < end);
+            if (mt === 0x51 && ml === 3 && tempo === null) {
+              tempo = (dv.getUint8(p) << 16) | (dv.getUint8(p + 1) << 8) | dv.getUint8(p + 2);
+            }
+            if (mt === 0x58 && ml >= 2 && tsig === null) {
+              tsig = { n: dv.getUint8(p), d: Math.pow(2, dv.getUint8(p + 1)) };
+            }
+            p += ml;
+          } else if (st === 0xF0 || st === 0xF7) {
+            var sl = 0;
+            do { b = dv.getUint8(p++); sl = sl * 128 + (b & 0x7F); } while ((b & 0x80) && p < end);
+            p += sl;
+          } else {
+            var ty = st & 0xF0, ch = st & 0x0F, d1 = dv.getUint8(p++), d2 = 0;
+            if (ty !== 0xC0 && ty !== 0xD0) d2 = dv.getUint8(p++);
+            if (ty === 0x90 && d2 > 0) notes.push({ tick: tick, ch: ch, note: d1, vel: d2 });
+          }
+        }
+        p = end;
+      }
+    } catch (e) {
+      return { errors: ["File MIDI rusak atau terpotong."], warnings: [] };
+    }
+    if (errors.length) return { errors: errors, warnings: warnings };
+
+    var drums = notes.filter(function (n) { return n.ch === 9; });
+    if (!drums.length && notes.length) {
+      drums = notes;
+      warnings.push("Tidak ada channel drum (10); semua note dibaca sebagai drum.");
+    }
+    if (!drums.length) return { errors: ["Tidak ada note di file MIDI."], warnings: warnings };
+
+    var MAP = {
+      35: "kick", 36: "kick",
+      37: "rim", 38: "snare", 40: "snare", 39: "clap",
+      41: "tom", 43: "tom", 45: "tom", 47: "tom", 48: "tom", 50: "tom",
+      42: "hat", 44: "hat", 46: "open",
+      51: "ride", 53: "ride", 59: "ride",
+      49: "crash", 52: "crash", 55: "crash", 57: "crash"
+    };
+    var sixteenth = tpb / 4, ignored = 0, off = 0, hits = [], maxStep = 0;
+    drums.forEach(function (n) {
+      var lane = MAP[n.note];
+      if (!lane) { ignored++; return; }
+      var s = Math.round(n.tick / sixteenth);
+      if (Math.abs(n.tick - s * sixteenth) > sixteenth * 0.25) off++;
+      hits.push({ lane: lane, step: s, vel: n.vel });
+      if (s > maxStep) maxStep = s;
+    });
+    if (!hits.length) {
+      return { errors: ["Tidak ada note drum yang dikenali."], warnings: warnings };
+    }
+    if (ignored) warnings.push(ignored + " note diabaikan (percussion lain seperti cowbell, tambourine, dll.).");
+    if (off) warnings.push(Math.round(off / hits.length * 100) + "% note tidak pas di grid 1/16 (swing/triplet?) dan digeser ke grid terdekat.");
+    if (tsig && !(tsig.n === 4 && tsig.d === 4)) {
+      warnings.push("Birama " + tsig.n + "/" + tsig.d + ": dibaca sebagai 16 langkah per 4 beat.");
+    }
+
+    // velocity -> 3 level: ghost (<=50), normal, aksen (>=110); seragam = semua normal
+    var vmin = 127, vmax = 0;
+    hits.forEach(function (h) { if (h.vel < vmin) vmin = h.vel; if (h.vel > vmax) vmax = h.vel; });
+    var uniform = (vmax - vmin) < 10;
+    if (uniform) warnings.push("Velocity di file seragam, semua not dibaca normal (tanpa aksen/ghost).");
+    var RANK = { 0: -1, 3: 0, 1: 1, 2: 2 };
+    function levelOf(v) { return uniform ? 1 : (v >= 110 ? 2 : (v <= 50 ? 3 : 1)); }
+
+    var barsN = Math.floor(maxStep / STEPS) + 1;
+    if (barsN > 32) {
+      warnings.push("Dipotong ke 32 bar pertama (file berisi " + barsN + " bar).");
+      barsN = 32;
+    }
+    var barPats = [];
+    for (var bi = 0; bi < barsN; bi++) barPats.push(emptyPattern());
+    hits.forEach(function (h) {
+      var bx = Math.floor(h.step / STEPS);
+      if (bx >= barsN) return;
+      var cellArr = barPats[bx][h.lane], si = h.step % STEPS, lv = levelOf(h.vel);
+      if (RANK[lv] > RANK[cellArr[si]]) cellArr[si] = lv;
+    });
+
+    // bar berurutan yang identik digabung jadi satu section
+    var runs = [];
+    barPats.forEach(function (bp) {
+      var key = JSON.stringify(bp), last = runs[runs.length - 1];
+      if (last && last.key === key && last.len < 16) last.len++;
+      else runs.push({ key: key, len: 1, pat: bp });
+    });
+    var uniq = {}, secs = [], arr = [];
+    var base = (fileName || "midi").replace(/\.[^.]*$/, "").replace(/[^A-Za-z0-9]+/g, " ").trim().slice(0, 12) || "midi";
+    runs.forEach(function (r) {
+      var k = r.key + "|" + r.len;
+      if (uniq[k] === undefined) {
+        uniq[k] = secs.length;
+        var pats = [];
+        for (var q = 0; q < r.len; q++) pats.push(copyPattern(r.pat));
+        secs.push({ name: "", bars: r.len, patterns: pats });
+      }
+      arr.push(uniq[k]);
+    });
+    secs.forEach(function (s, i) {
+      s.name = secs.length === 1 ? base : base + " " + (i < 26 ? String.fromCharCode(65 + i) : "S" + i);
+    });
+
+    var bpmV = null;
+    if (tempo) bpmV = clampNum(60000000 / tempo, 60, 180, "bpm", warnings);
+    return { errors: [], warnings: warnings, project: { name: base, bpm: bpmV, swing: null, sections: secs, arr: arr } };
+  }
+  // <parse-end>
+
+
+  // ---------- import UI ----------
+  var impText = document.getElementById("impText");
+  var impOut = document.getElementById("impOut");
+  var impFile = document.getElementById("impFile");
+  var pending = null;
+
+  function msg(cls, text) {
+    var d = document.createElement("div");
+    d.className = "msg" + (cls ? " " + cls : "");
+    d.textContent = text;
+    impOut.appendChild(d);
+  }
+
+  function showImport(res) {
+    impOut.textContent = ""; pending = null;
+    if (res.errors.length) {
+      msg("err", "Tidak bisa diimpor:");
+      res.errors.slice(0, 8).forEach(function (e) { msg("err", e); });
+      if (res.errors.length > 8) msg("err", "\u2026dan " + (res.errors.length - 8) + " masalah lain.");
+      res.warnings.forEach(function (w) { msg("", w); });
+      return;
+    }
+    var p = res.project; pending = p;
+    var totalB = 0;
+    p.arr.forEach(function (i) { totalB += p.sections[i].bars; });
+    var names = p.sections.slice(0, 6).map(function (s) { return s.name; }).join(", ");
+    if (p.sections.length > 6) names += ", \u2026";
+    msg("ok", "Terbaca: " + p.sections.length + " section (" + names + "), " + totalB +
+      " bar dalam urutan" + (p.bpm !== null ? ", " + p.bpm + " bpm" : "") + ".");
+    res.warnings.forEach(function (w) { msg("", w); });
+
+    var box = document.createElement("div");
+    box.className = "apply";
+    var cb = null;
+    if (p.bpm !== null || p.swing !== null) {
+      var lab = document.createElement("label");
+      cb = document.createElement("input");
+      cb.type = "checkbox"; cb.checked = true;
+      lab.appendChild(cb);
+      lab.appendChild(document.createTextNode("pakai tempo dari file"));
+      box.appendChild(lab);
+    }
+    var add = document.createElement("button");
+    add.type = "button"; add.className = "chip primary"; add.textContent = "Tambahkan ke lagu";
+    add.addEventListener("click", function () { applyImport("append", cb && cb.checked); });
+    var rep = document.createElement("button");
+    rep.type = "button"; rep.className = "chip"; rep.textContent = "Ganti seluruh lagu";
+    twoTap(rep, "ketuk lagi untuk mengganti", function () {
+      applyImport("replace", cb && cb.checked);
+    });
+    box.appendChild(add); box.appendChild(rep);
+    impOut.appendChild(box);
+  }
+
+  function applyImport(mode, useTempo) {
+    var p = pending; if (!p) return;
+    if (mode === "replace") {
+      if (running) stopPlayback();
+      sections = []; arrangement = [];
+    }
+    var ids = p.sections.map(function (s) {
+      var ns = makeSection(s.name, s.patterns);
+      sections.push(ns);
+      return ns.id;
+    });
+    p.arr.forEach(function (i) { arrangement.push(ids[i]); });
+    if (useTempo) {
+      if (p.bpm !== null) {
+        bpm = p.bpm; bpmEl.value = bpm; bpmV.textContent = bpm;
+        if (ready) Tone.Transport.bpm.value = bpm;
+      }
+      if (p.swing !== null) {
+        swing = p.swing; swEl.value = swing; swV.textContent = swing;
+        if (ready) Tone.Transport.swing = swing / 100;
+      }
+    }
+    setActive(ids[0]);
+    structureChanged();
+    impOut.textContent = ""; pending = null;
+    msg("ok", (mode === "replace" ? "Lagu diganti: " : "Ditambahkan: ") +
+      p.sections.length + " section. Ketuk \"Putar lagu\" untuk mendengarkan.");
+  }
+
+  document.getElementById("impRead").addEventListener("click", function () {
+    var t = impText.value.trim();
+    if (!t) { showImport({ errors: ["Teks masih kosong. Tempel JSON atau pilih file."], warnings: [] }); return; }
+    showImport(parseJsonImport(t));
+  });
+
+  function handleFile(f) {
+    if (!f) return;
+    if (f.size > 2 * 1024 * 1024) {
+      showImport({ errors: ["File terlalu besar (maks 2 MB)."], warnings: [] });
+      impFile.value = ""; return;
+    }
+    var isMidi = /\.midi?$/i.test(f.name);
+    var rd = new FileReader();
+    rd.onerror = function () {
+      showImport({ errors: ["File tidak bisa dibaca."], warnings: [] });
+      impFile.value = "";
+    };
+    rd.onload = function () {
+      if (isMidi) showImport(midiToProject(rd.result, f.name));
+      else { impText.value = String(rd.result); showImport(parseJsonImport(impText.value)); }
+      impFile.value = "";
+    };
+    if (isMidi) rd.readAsArrayBuffer(f); else rd.readAsText(f);
+  }
+  // Beberapa tampilan (mis. di dalam Claude) memblokir pemilih file. Kalau tidak ada tanda
+  // pemilih terbuka (window blur / pindah tab / cancel / change) dalam 2 detik, tampilkan saran.
+  var impNotice = document.getElementById("impNotice");
+  impNotice.textContent = "Pemilih file sepertinya tidak terbuka di sini (tampilan di dalam Claude membatasinya). Buka halaman ini di Chrome atau browser biasa, atau tempel isi JSON ke kotak teks lalu ketuk \"baca teks\".";
+  var pickTimer = null, pickSeen = false, pickAt = 0;
+  function pickSignal() { pickSeen = true; impNotice.hidden = true; }
+  function pickDone() {
+    if (pickTimer) { clearTimeout(pickTimer); pickTimer = null; }
+    window.removeEventListener("blur", pickSignal);
+    document.removeEventListener("visibilitychange", pickSignal);
+  }
+  impFile.addEventListener("click", function () {
+    pickDone(); pickSeen = false; pickAt = Date.now();
+    window.addEventListener("blur", pickSignal);
+    document.addEventListener("visibilitychange", pickSignal);
+    pickTimer = setTimeout(function () {
+      pickTimer = null;
+      if (!pickSeen) impNotice.hidden = false;
+    }, 2000);
+  });
+  // "cancel" yang datang <0,5 dtk setelah ketukan dan tanpa blur = pemilih ditolak, bukan dibatalkan orang
+  impFile.addEventListener("cancel", function () {
+    var fast = !pickSeen && (Date.now() - pickAt) < 500;
+    pickDone();
+    if (fast) impNotice.hidden = false; else pickSignal();
+  });
+  impFile.addEventListener("change", function () {
+    pickSignal(); pickDone();
+    handleFile(impFile.files && impFile.files[0]);
+  });
+  impText.addEventListener("dragover", function (ev) { ev.preventDefault(); });
+  impText.addEventListener("drop", function (ev) {
+    ev.preventDefault();
+    handleFile(ev.dataTransfer && ev.dataTransfer.files && ev.dataTransfer.files[0]);
+  });
+
+  var EXAMPLE = [
+    "{",
+    "  \"format\": \"drumkode/pattern\",",
+    "  \"name\": \"contoh\",",
+    "  \"bpm\": 92,",
+    "  \"sections\": [",
+    "    { \"name\": \"verse\", \"bars\": 4, \"pattern\": {",
+    "        \"kick\":  \"x.....x.x.......\",",
+    "        \"snare\": \"....X..o....X.o.\",",
+    "        \"hat\":   \"x.x.x.x.x.x.x.x.\" } },",
+    "    { \"name\": \"chorus\", \"patterns\": [",
+    "        { \"kick\":  \"X.....x.x.......\",",
+    "          \"snare\": \"....x.......x...\",",
+    "          \"hat\":   \"x...x...x...x...\",",
+    "          \"crash\": \"X...............\" },",
+    "        { \"kick\":  \"x.....x.x.......\",",
+    "          \"snare\": \"....x.......x...\",",
+    "          \"ride\":  \"x...x...x...x...\" } ] }",
+    "  ],",
+    "  \"arrangement\": [\"verse\", \"chorus\", \"verse\", \"chorus\"]",
+    "}"
+  ].join("\n");
+
+  document.getElementById("impExample").addEventListener("click", function () {
+    impText.value = EXAMPLE;
+    showImport(parseJsonImport(EXAMPLE));
+  });
+
+  var impPromptBtn = document.getElementById("impPrompt");
+  impPromptBtn.addEventListener("click", function () {
+    var prompt =
+"Tugas: tulis pola drum dalam JSON untuk app \"drumkode\".\n" +
+"\n" +
+"Aturan:\n" +
+"- Satu pola = 1 bar 4/4 = 16 langkah (1/16 note). Tulis tiap lane sebagai string 16 karakter: x = bunyi normal, X = aksen (keras), o = ghost note (pelan), . = diam.\n" +
+"- Lane yang tersedia: kick, snare, rim (rim click / side stick), clap, tom, hat (closed hi-hat), open (open hi-hat), ride, crash. Lane yang tidak dipakai boleh dihilangkan.\n" +
+"- Kalau semua bar dalam satu bagian sama, pakai \"pattern\" + \"bars\". Kalau tiap bar berbeda (misalnya ada fill atau crash di bar tertentu), pakai \"patterns\": daftar pola, satu per bar, urut dari bar pertama.\n" +
+"- Bagian lagu yang berbeda (intro, verse, chorus) dibuat sebagai section terpisah.\n" +
+"- \"arrangement\" = urutan nama section dari awal sampai akhir.\n" +
+"- Isi \"bpm\" kalau kamu tahu. Kalau tidak yakin dengan sebuah pola, katakan di luar JSON.\n" +
+"- Balas hanya dengan JSON.\n" +
+"\n" +
+"Format:\n" + EXAMPLE + "\n" +
+"\n" +
+"Sumber yang ditranskripsi: <tulis judul lagu dan bagian yang dimaksud, atau lampirkan file/deskripsi>";
+    var done = function () {
+      impPromptBtn.textContent = "tersalin";
+      setTimeout(function () { impPromptBtn.textContent = "salin prompt untuk AI"; }, 1400);
+    };
+    var fail = function () {
+      impText.value = prompt;
+      impPromptBtn.textContent = "prompt ada di kotak teks";
+      setTimeout(function () { impPromptBtn.textContent = "salin prompt untuk AI"; }, 2200);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(prompt).then(done, fail);
+    else fail();
+  });
+
+  // ---------- ekspor ----------
+  var expMsg = document.getElementById("expMsg");
+  var expText = document.getElementById("expText");
+  var expFmt = document.getElementById("expFmt");
+
+  function expSay(text, cls) {
+    expMsg.hidden = false;
+    expMsg.className = "msg" + (cls ? " " + cls : "");
+    expMsg.textContent = text;
+  }
+  function levelsToStr(arr) {
+    return arr.map(function (v) { return v === 2 ? "X" : (v === 3 ? "o" : (v ? "x" : ".")); }).join("");
+  }
+  function patObj(p) {
+    var o = {};
+    LANES.forEach(function (l) { if (p[l.id].some(Boolean)) o[l.id] = levelsToStr(p[l.id]); });
+    return o;
+  }
+  // scope: "section" (section aktif) atau "song" (semua section + urutan). Format sama dengan Import.
+  function exportText(scope) {
+    var secs = scope === "section" ? [active()] : sections;
+    var arrIds = scope === "section" ? [activeId] : arrangement;
+    var title = scope === "section" ? active().name : "lagu drumkode";
+    // nama dibuat unik (maks 16 karakter) agar arrangement menunjuk section yang benar saat diimpor
+    var used = {}, nm = {};
+    secs.forEach(function (sec) {
+      var base = (sec.name || "section").slice(0, 16), n = base, k = 2;
+      while (used[n.toLowerCase()]) { var suf = " " + (k++); n = base.slice(0, 16 - suf.length) + suf; }
+      used[n.toLowerCase()] = true; nm[sec.id] = n;
+    });
+    var L = ["{", '  "format": "drumkode/pattern",', '  "name": ' + JSON.stringify(title) + ",",
+             '  "bpm": ' + bpm + ",", '  "swing": ' + swing + ",", '  "sections": ['];
+    secs.forEach(function (sec, i) {
+      var end = i < secs.length - 1 ? "," : "";
+      if (allSame(sec)) {
+        L.push('    { "name": ' + JSON.stringify(nm[sec.id]) + ', "bars": ' + sec.bars + ', "pattern": ' + JSON.stringify(patObj(sec.patterns[0])) + " }" + end);
+      } else {
+        L.push('    { "name": ' + JSON.stringify(nm[sec.id]) + ', "patterns": [');
+        sec.patterns.forEach(function (p, bi) { L.push("      " + JSON.stringify(patObj(p)) + (bi < sec.patterns.length - 1 ? "," : "")); });
+        L.push("    ] }" + end);
+      }
+    });
+    L.push("  ],");
+    L.push('  "arrangement": ' + JSON.stringify(arrIds.map(function (id) { return nm[id]; })));
+    L.push("}");
+    return L.join("\n") + "\n";
+  }
+  function fileSlug(name) {
+    return String(name || "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "drumkode";
+  }
+
+  // ---- daftar not untuk MIDI/WAV ----
+  // step = indeks step 1/16 global sejak awal ekspor; waktu step ganjil digeser oleh swing (sama dengan Tone.Transport.swing, 16n)
+  function collectEvents(scope) {
+    var ids = scope === "section" ? [activeId] : arrangement;
+    var ev = [], base = 0;
+    ids.forEach(function (id) {
+      var sec = byId(id); if (!sec) return;
+      sec.patterns.forEach(function (p, b) {
+        for (var i = 0; i < STEPS; i++) {
+          LANES.forEach(function (l) {
+            var lv = p[l.id][i];
+            if (lv) ev.push({ step: base + b * STEPS + i, lane: l.id, level: lv });
+          });
+        }
+      });
+      base += sec.bars * STEPS;
+    });
+    return { events: ev, steps: base };
+  }
+  function stepSeconds(step) {
+    var d = 60 / bpm / 4;
+    return step * d + ((step % 2) ? d * (2 / 3) * (swing / 100) : 0);
+  }
+
+  // ---- MIDI (format 0, channel 10, 480 ppq) ----
+  var GM = { kick: 36, snare: 38, rim: 37, clap: 39, tom: 45, hat: 42, open: 46, ride: 51, crash: 49 };
+  var MIDI_VEL = { 1: 100, 2: 127, 3: 45 };   // normal, aksen, ghost (sesuai ambang saat impor)
+  function vlq(n) { var b = [n & 0x7F]; n >>= 7; while (n) { b.unshift((n & 0x7F) | 0x80); n >>= 7; } return b; }
+  function midiFile(c) {
+    var ppq = 480, sx = ppq / 4, ev = [];
+    c.events.forEach(function (e) {
+      var t = Math.round(e.step * sx + ((e.step % 2) ? sx * (2 / 3) * (swing / 100) : 0));
+      ev.push({ t: t, order: 1, note: GM[e.lane], vel: MIDI_VEL[e.level] });
+      ev.push({ t: t + 60, order: 0, note: GM[e.lane], vel: 0 });
+    });
+    ev.sort(function (a, b) { return a.t - b.t || a.order - b.order; });
+    var tr = [];
+    function push(a) { for (var k = 0; k < a.length; k++) tr.push(a[k]); }
+    var name = [0x64, 0x72, 0x75, 0x6D, 0x6B, 0x6F, 0x64, 0x65];   // "drumkode"
+    push([0x00, 0xFF, 0x03, name.length]); push(name);
+    var us = Math.round(60000000 / bpm);
+    push([0x00, 0xFF, 0x51, 0x03, (us >> 16) & 255, (us >> 8) & 255, us & 255]);
+    push([0x00, 0xFF, 0x58, 0x04, 0x04, 0x02, 0x18, 0x08]);
+    var last = 0;
+    ev.forEach(function (e) {
+      push(vlq(e.t - last)); last = e.t;
+      push([e.vel ? 0x99 : 0x89, e.note, e.vel]);
+    });
+    push(vlq(Math.max(0, c.steps * sx - last))); push([0xFF, 0x2F, 0x00]);
+    var len = tr.length;
+    var head = [0x4D, 0x54, 0x68, 0x64, 0, 0, 0, 6, 0, 0, 0, 1, (ppq >> 8) & 255, ppq & 255,
+                0x4D, 0x54, 0x72, 0x6B, (len >>> 24) & 255, (len >>> 16) & 255, (len >>> 8) & 255, len & 255];
+    var out = new Uint8Array(head.length + len);
+    out.set(head, 0); out.set(tr, head.length);
+    return out;
+  }
+
+  // ---- WAV: render offline memakai sampel kit baru (master sama dengan pemutaran: gain, kompresor, limiter) ----
+  function renderWav(c) {
+    var bufs = kits.baru && kits.baru.bufs;
+    if (!bufs) return Promise.reject(new Error("kit baru belum siap"));
+    var sr = bufs.kick.sampleRate;
+    var lat = 2 * Math.round(0.006 * sr);   // dua DynamicsCompressor (kompresor + limiter) menunda sekitar 6 ms masing-masing
+    var seconds = stepSeconds(c.steps) + 4.5 + lat / sr;
+    var oc = new OfflineAudioContext(2, Math.ceil(seconds * sr), sr);
+    var master = oc.createGain(); master.gain.value = 0.8;
+    var comp = oc.createDynamicsCompressor();
+    comp.threshold.value = -16; comp.knee.value = 8; comp.ratio.value = 4; comp.attack.value = 0.004; comp.release.value = 0.12;
+    var lim = oc.createDynamicsCompressor();
+    lim.threshold.value = -1; lim.knee.value = 0; lim.ratio.value = 20; lim.attack.value = 0.003; lim.release.value = 0.01;
+    master.connect(comp); comp.connect(lim); lim.connect(oc.destination);
+    var lastOpen = null;
+    c.events.forEach(function (e) {
+      var t = stepSeconds(e.step);
+      if (e.lane === "hat" && lastOpen) { lastOpen.setTargetAtTime(0, t, 0.01); lastOpen = null; }
+      var src = oc.createBufferSource(); src.buffer = bufs[e.lane];
+      var g = oc.createGain(); g.gain.value = VEL[e.level] || VEL[1];
+      src.connect(g); g.connect(master); src.start(t);
+      if (e.lane === "open") lastOpen = g.gain;
+    });
+    return oc.startRendering().then(function (ab) {
+      var n = ab.length, chs = ab.numberOfChannels, d = [], i, k;
+      var skip = lat;   // buang latensi di awal supaya waktu not = waktu grid
+      for (k = 0; k < chs; k++) d.push(ab.getChannelData(k));
+      // potong keheningan di ujung (sisakan 0,25 dtk), tapi minimal sepanjang lagu/section
+      var end = n;
+      scan: for (i = n - 1; i >= 0; i--) { for (k = 0; k < chs; k++) { if (Math.abs(d[k][i]) > 0.0003) { end = i; break scan; } } }
+      end = Math.min(n, Math.max(end + Math.round(0.25 * sr), Math.round(stepSeconds(c.steps) * sr) + skip));
+      var frames = end - skip;
+      var bytes = new Uint8Array(44 + frames * chs * 2), dv = new DataView(bytes.buffer);
+      function str(o, s2) { for (var j = 0; j < s2.length; j++) dv.setUint8(o + j, s2.charCodeAt(j)); }
+      str(0, "RIFF"); dv.setUint32(4, 36 + frames * chs * 2, true); str(8, "WAVE"); str(12, "fmt ");
+      dv.setUint32(16, 16, true); dv.setUint16(20, 1, true); dv.setUint16(22, chs, true);
+      dv.setUint32(24, sr, true); dv.setUint32(28, sr * chs * 2, true); dv.setUint16(32, chs * 2, true); dv.setUint16(34, 16, true);
+      str(36, "data"); dv.setUint32(40, frames * chs * 2, true);
+      var o = 44;
+      for (i = skip; i < end; i++) {
+        for (k = 0; k < chs; k++) {
+          var v = Math.max(-1, Math.min(1, d[k][i]));
+          dv.setInt16(o, v < 0 ? v * 32768 : v * 32767, true); o += 2;
+        }
+      }
+      return bytes;
+    });
+  }
+
+  // ---- zip satu berkas (tanpa kompresi) ----
+  var CRC_TABLE = null;
+  function crc32(u8) {
+    if (!CRC_TABLE) {
+      CRC_TABLE = new Uint32Array(256);
+      for (var n = 0; n < 256; n++) { var c = n; for (var k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1); CRC_TABLE[n] = c >>> 0; }
+    }
+    var crc = 0xFFFFFFFF;
+    for (var i = 0; i < u8.length; i++) crc = CRC_TABLE[(crc ^ u8[i]) & 0xFF] ^ (crc >>> 8);
+    return (crc ^ 0xFFFFFFFF) >>> 0;
+  }
+  function zipBlob(name, data) {
+    var nm = new TextEncoder().encode(name), crc = crc32(data), size = data.length;
+    function u16(v) { return [v & 255, (v >> 8) & 255]; }
+    function u32(v) { return [v & 255, (v >>> 8) & 255, (v >>> 16) & 255, (v >>> 24) & 255]; }
+    var local = new Uint8Array([0x50, 0x4B, 0x03, 0x04, 20, 0, 0, 0, 0, 0, 0, 0, 0x21, 0].concat(u32(crc), u32(size), u32(size), u16(nm.length), [0, 0]));
+    var central = new Uint8Array([0x50, 0x4B, 0x01, 0x02, 20, 0, 20, 0, 0, 0, 0, 0, 0, 0, 0x21, 0].concat(
+      u32(crc), u32(size), u32(size), u16(nm.length), [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], u32(0)));
+    var end = new Uint8Array([0x50, 0x4B, 0x05, 0x06, 0, 0, 0, 0, 1, 0, 1, 0].concat(
+      u32(central.length + nm.length), u32(local.length + nm.length + size), [0, 0]));
+    return new Blob([local, nm, data, central, nm, end], { type: "application/zip" });
+  }
+
+  // ---- menyimpan ----
+  // Lewat kapabilitas "downloads" (tampilan artifact). Di browser biasa atau WebView (tanpa window.claude) dipakai
+  // tautan unduhan. JSON yang gagal tersimpan ditampilkan untuk disalin manual; berkas biner hanya diberi pesan.
+  function showManual(text, why) {
+    if (text == null) { expSay(why + " Coba buka halaman ini di Chrome.", "err"); return; }
+    expText.hidden = false; expText.value = text;
+    try { expText.focus(); expText.select(); } catch (e) { /* abaikan */ }
+    expSay(why + " Salin JSON dari kotak di bawah.", "err");
+  }
+  function saveFile(filename, data, mime, label, manualText) {
+    var viaAnchor = function () {
+      try {
+        var a = document.createElement("a");
+        a.href = URL.createObjectURL(data instanceof Blob ? data : new Blob([data], { type: mime }));
+        a.download = filename;
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(function () { URL.revokeObjectURL(a.href); }, 5000);
+        expSay("Terunduh: " + filename + " (" + label + ").", "ok");
+      } catch (e) { showManual(manualText, "Unduhan tidak bisa dijalankan di sini."); }
+    };
+    if (!(window.claude && window.claude.use)) { viaAnchor(); return Promise.resolve(); }
+    expSay("Menyiapkan unduhan...", "");
+    var timeout = new Promise(function (res) { setTimeout(function () { res(null); }, 12000); });
+    return Promise.race([window.claude.use("downloads"), timeout]).then(function (dl) {
+      if (!dl) { showManual(manualText, "Unduhan tidak tersedia di tampilan ini."); return; }
+      return dl.save({ filename: filename, data: data }).then(function () {
+        expSay("Diunduh: " + filename + " (" + label + ").", "ok");
+      }, function (e) {
+        if (e && e.code === "declined") expSay("Unduhan dibatalkan.", "");
+        else if (e && e.code === "rate_limited") expSay("Ada permintaan unduhan yang masih terbuka. Selesaikan dulu, lalu coba lagi.", "err");
+        else if (e && e.code === "too_large") expSay("Berkas terlalu besar untuk disimpan di sini. Coba ekspor satu section saja.", "err");
+        else showManual(manualText, "Unduhan gagal" + (e && e.code ? " (" + e.code + ")" : "") + ".");
+      });
+    }).catch(function () { showManual(manualText, "Unduhan gagal."); });
+  }
+
+  var expButtons = ["expSection", "expSong", "expCopy"];
+  function setExpBusy(b) { expButtons.forEach(function (id) { document.getElementById(id).disabled = b; }); }
+
+  function doExport(scope) {
+    var sec = active();
+    if (scope === "section" && !sec) return;
+    var fmt = expFmt.value;
+    var base = scope === "section" ? "drumkode-" + fileSlug(sec.name) : "drumkode-lagu-" + bpm + "bpm";
+    var what = scope === "section" ? "section \"" + sec.name + "\", " + sec.bars + " bar"
+                                   : sections.length + " section, " + totalBars() + " bar dalam urutan";
+    expText.hidden = true;
+    if (fmt === "json") {
+      var text = exportText(scope);
+      saveFile(base + ".json", text, "application/json", what, text);
+      return;
+    }
+    var c = collectEvents(scope);
+    if (!c.events.length) { expSay("Tidak ada not untuk diekspor.", "err"); return; }
+    if (fmt === "midi") {
+      saveFile(base + ".zip", zipBlob(base + ".mid", midiFile(c)), "application/zip", what + ", MIDI di dalam zip");
+      return;
+    }
+    // WAV
+    if (stepSeconds(c.steps) > 300) { expSay("Terlalu panjang untuk dirender di perangkat (maks 5 menit). Ekspor per section.", "err"); return; }
+    setExpBusy(true);
+    expSay("Merender audio (WAV)... ini bisa makan beberapa detik.", "");
+    ensureAudio().then(function () { return bakeP; }).then(function () { return renderWav(c); }).then(function (bytes) {
+      var blob = zipBlob(base + ".wav", bytes);
+      return saveFile(base + ".zip", blob, "application/zip", what + ", WAV di dalam zip (" + (bytes.length / 1048576).toFixed(1) + " MB)");
+    }).catch(function (e) {
+      expSay("Render WAV gagal: " + ((e && e.message) || e), "err");
+    }).then(function () { setExpBusy(false); });
+  }
+
+  document.getElementById("expSection").addEventListener("click", function () { doExport("section"); });
+  document.getElementById("expSong").addEventListener("click", function () { doExport("song"); });
+  document.getElementById("expCopy").addEventListener("click", function () {
+    var text = exportText("song");
+    var ok = function () { expSay("JSON lagu tersalin ke clipboard.", "ok"); };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(ok, function () { showManual(text, "Clipboard tidak bisa diakses."); });
+    else showManual(text, "Clipboard tidak tersedia.");
+  });
+
+  // ---------- diagnosa audio ----------
+  var diag = { on: false, an: null, pollT: null, outT: null, peak: 0, over: 0, polls: 0,
+               ticks: 0, late: 0, lateMax: 0, costMax: 0, costSum: 0, offline: "" };
+  var diagOut = document.getElementById("diagOut");
+  var diagMon = document.getElementById("diagMon");
+
+  function dbfs(x) { return x > 0 ? (20 * Math.log10(x)).toFixed(1) + " dBFS" : "-inf"; }
+  function diagReset() {
+    diag.peak = 0; diag.over = 0; diag.polls = 0; diag.ticks = 0;
+    diag.late = 0; diag.lateMax = 0; diag.costMax = 0; diag.costSum = 0;
+  }
+  function diagReport() {
+    var c = null, raw = null;
+    try { c = Tone.getContext ? Tone.getContext() : Tone.context; raw = c && c.rawContext; } catch (e) { /* abaikan */ }
+    var lat = function (v) { return v == null ? "n/a" : (v * 1000).toFixed(1) + " ms"; };
+    var L = [];
+    L.push("drumkode " + document.title.split(" ")[1] + " | kit=" + kitName + " humanize=" + humanize + " bpm=" + bpm);
+    L.push("perangkat: " + navigator.userAgent.slice(0, 110));
+    L.push("audio: state=" + (raw && raw.state) + " sampleRate=" + (raw && raw.sampleRate) +
+           " baseLatency=" + lat(raw && raw.baseLatency) + " outputLatency=" + lat(raw && raw.outputLatency) +
+           " lookAhead=" + (c && c.lookAhead));
+    L.push("monitor: " + (diag.on ? "AKTIF" : "mati") + " | pembacaan=" + diag.polls);
+    L.push("puncak keluaran: " + dbfs(diag.peak) + " | pembacaan >= 0.98 (nyaris/sudah clipping): " + diag.over);
+    L.push("step diperiksa: " + diag.ticks + " | terlambat: " + diag.late +
+           (diag.ticks ? " (" + (100 * diag.late / diag.ticks).toFixed(1) + "%)" : "") +
+           " | terlambat maks: " + diag.lateMax.toFixed(1) + " ms");
+    L.push("waktu eksekusi step: rata-rata " + (diag.ticks ? (diag.costSum / diag.ticks).toFixed(2) : "0") +
+           " ms | maks " + diag.costMax.toFixed(2) + " ms");
+    if (diag.offline) L.push("", diag.offline);
+    return L.join("\n");
+  }
+  function diagShow() { diagOut.textContent = diagReport(); }
+
+  function diagStart() {
+    ensureAudio().then(function () {
+      try {
+        var dest = Tone.getDestination ? Tone.getDestination() : Tone.Destination;
+        diag.an = new Tone.Analyser("waveform", 2048);
+        dest.connect(diag.an);
+      } catch (e) { diag.an = null; diagOut.textContent = "Tidak bisa memasang pengukur puncak: " + ((e && e.message) || e); }
+      diag.on = true;
+      diagMon.textContent = "hentikan monitor";
+      diag.pollT = setInterval(function () {
+        if (!diag.an) return;
+        var w = diag.an.getValue(), m = 0;
+        for (var i = 0; i < w.length; i++) { var a = Math.abs(w[i]); if (a > m) m = a; }
+        diag.polls++;
+        if (m > diag.peak) diag.peak = m;
+        if (m >= 0.98) diag.over++;
+      }, 25);
+      diag.outT = setInterval(diagShow, 500);
+      diagShow();
+    }).catch(function () { /* pesan galat sudah tampil di baris status */ });
+  }
+  function diagStop() {
+    diag.on = false;
+    clearInterval(diag.pollT); clearInterval(diag.outT);
+    try { if (diag.an) diag.an.dispose(); } catch (e) { /* abaikan */ }
+    diag.an = null;
+    diagMon.textContent = "mulai monitor";
+    diagShow();
+  }
+  diagMon.addEventListener("click", function () { if (diag.on) diagStop(); else diagStart(); });
+  document.getElementById("diagReset").addEventListener("click", function () { diagReset(); diagShow(); });
+
+  // Render offline (deterministik, tidak bergantung CPU): ukur puncak dan sampel di atas 1.0 (pasti clipping di DAC).
+  function probe(name, kind) {
+    return Tone.Offline(function () {
+      var k = KITS[name]();
+      return k.ready.then(function () {
+        for (var i = 0; i < 8; i++) {
+          var t = 0.1 + i * 0.3;
+          if (kind === "padat") {
+            LANES.forEach(function (l) { k.play(l.id, t, 1); });
+          } else {
+            k.play("hat", t, 0.85); k.play(i % 2 ? "snare" : "kick", t, 0.85);
+            if (i === 0) k.play("crash", t, 1);
+          }
+        }
+      });
+    }, 3.2).then(function (buf) {
+      var d = buf.getChannelData ? buf.getChannelData(0) : buf.get().getChannelData(0);
+      var peak = 0, over = 0, near = 0, sum = 0;
+      for (var i = 0; i < d.length; i++) {
+        var a = Math.abs(d[i]); if (a > peak) peak = a;
+        if (a > 1) over++; else if (a >= 0.98) near++;
+        sum += d[i] * d[i];
+      }
+      return "kit " + name + " (" + kind + "): puncak " + dbfs(peak) + " | sampel >1.0: " + over +
+             " | sampel 0.98-1.0: " + near + " | RMS " + dbfs(Math.sqrt(sum / d.length));
+    });
+  }
+  document.getElementById("diagOff").addEventListener("click", function () {
+    diag.offline = "uji offline: berjalan...";
+    diagShow();
+    var res = [];
+    var jobs = [["baru", "umum"], ["baru", "padat"], ["lama", "umum"], ["lama", "padat"]];
+    jobs.reduce(function (p, j) {
+      return p.then(function () {
+        return probe(j[0], j[1]).then(function (r) { res.push(r); }, function (e) { res.push("kit " + j[0] + " (" + j[1] + "): gagal - " + ((e && e.message) || e)); });
+      });
+    }, Promise.resolve()).then(function () {
+      diag.offline = "uji offline:\n" + res.join("\n");
+      diagShow();
+    });
+  });
+
+  document.getElementById("diagCopy").addEventListener("click", function () {
+    var btn = this, txt = diagReport();
+    var done = function () { btn.textContent = "tersalin"; setTimeout(function () { btn.textContent = "salin laporan"; }, 1400); };
+    var fail = function () { diagOut.textContent = txt; btn.textContent = "salin manual dari kotak"; setTimeout(function () { btn.textContent = "salin laporan"; }, 2200); };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(done, fail); else fail();
+  });
+
+  // ---------- code panel ----------
+  var codeEl = document.getElementById("code");
+
+  function slugMap() {
+    var used = {}, map = {};
+    sections.forEach(function (s) {
+      var base = s.name.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+      if (!base) base = "section";
+      if (/^[0-9]/.test(base)) base = "s_" + base;
+      var key = base, n = 2;
+      while (used[key]) key = base + "_" + (n++);
+      used[key] = true; map[s.id] = key;
+    });
+    return map;
+  }
+  function pad(id) { return (id + ":").padEnd(7, " "); }
+
+  // hanya lane yang punya not yang ditulis
+  function patLines(p, indent) {
+    return LANES.filter(function (l) { return p[l.id].some(Boolean); })
+      .map(function (l) { return indent + pad(l.id) + "[" + p[l.id].join(",") + "]"; })
+      .join(",\n");
+  }
+
+  function renderCode() {
+    var sm = slugMap();
+    var secLines = sections.map(function (s) {
+      var head = "  " + sm[s.id] + ": {\n";
+      if (allSame(s)) {
+        var rows = patLines(s.patterns[0], "      ");
+        return head + "    bars: " + s.bars + ",\n" +
+          (rows ? "    pattern: {\n" + rows + "\n    }\n" : "    pattern: {}\n") + "  }";
+      }
+      var items = s.patterns.map(function (p, bi) {
+        var rows = patLines(p, "        ");
+        var comma = bi < s.patterns.length - 1 ? "," : "";
+        var tail = comma + " // bar " + (bi + 1);
+        return rows ? "      {\n" + rows + "\n      }" + tail : "      {}" + tail;
+      }).join("\n");
+      return head + "    patterns: [\n" + items + "\n    ]\n  }";
+    }).join(",\n");
+    var arrNames = arrangement.map(function (id) { return "\"" + sm[id] + "\""; }).join(", ");
+
+    codeEl.textContent =
+"// 1. data: pola per section + urutan lagu\n" +
+"// section memakai `pattern` + `bars` (semua bar sama) atau `patterns` (satu pola per bar)\n" +
+"const VEL = { 1: 0.85, 2: 1, 3: 0.4 }; // nilai langkah: 0 diam, 1 normal, 2 aksen, 3 ghost\n" +
+"const bpm = " + bpm + ";\n" +
+"const swing = " + (swing / 100).toFixed(2) + ";\n" +
+"\n" +
+"const sections = {\n" + secLines + "\n};\n" +
+"\n" +
+"const arrangement = [" + arrNames + "];\n" +
+"\n" +
+"// 2. kit (dipanggil ulang di dalam Tone.Offline supaya node-nya ikut context offline)\n" +
+"async function buildKit() {\n" +
+"  // bus master: EQ -> kompresor -> saturasi halus -> limiter\n" +
+"  const limiter = new Tone.Limiter(-1).toDestination();\n" +
+"  const sat = new Tone.Distortion({ distortion: 0.06 }); sat.wet.value = 0.25;\n" +
+"  const comp = new Tone.Compressor({ threshold: -20, ratio: 4, attack: 0.004, release: 0.12, knee: 8 });\n" +
+"  const eq = new Tone.EQ3({ low: 2, mid: -1, high: 2, lowFrequency: 150, highFrequency: 5000 });\n" +
+"  const bus = new Tone.Gain(0.85); // headroom\n" +
+"  bus.chain(eq, comp, sat, limiter);\n" +
+"\n" +
+"  // ruang pendek\n" +
+"  const room = new Tone.Reverb({ decay: 0.5, preDelay: 0.004 });\n" +
+"  room.wet.value = 1;\n" +
+"  room.connect(bus);\n" +
+"\n" +
+"  // sumber -> (filter) -> bus, plus kirim opsional ke ruang\n" +
+"  const route = (src, filters, vol, roomAmt) => {\n" +
+"    if (vol !== undefined) src.volume.value = vol;\n" +
+"    let tail = src;\n" +
+"    (filters || []).forEach((f) => { tail.connect(f); tail = f; });\n" +
+"    tail.connect(bus);\n" +
+"    if (roomAmt) { const g = new Tone.Gain(roomAmt); tail.connect(g); g.connect(room); }\n" +
+"    return src;\n" +
+"  };\n" +
+"  const noise = (decay) => new Tone.NoiseSynth({\n" +
+"    noise: { type: \"white\" }, envelope: { attack: 0.001, decay, sustain: 0 },\n" +
+"  });\n" +
+"  const drum = (pitchDecay, octaves, decay, type = \"sine\") => new Tone.MembraneSynth({\n" +
+"    pitchDecay, octaves, oscillator: { type },\n" +
+"    envelope: { attack: 0.001, decay, sustain: 0, release: decay + 0.1 },\n" +
+"  });\n" +
+"  const metal = (frequency, harmonicity, modulationIndex, resonance, octaves, decay, release) =>\n" +
+"    new Tone.MetalSynth({\n" +
+"      frequency, harmonicity, modulationIndex, resonance, octaves,\n" +
+"      envelope: { attack: 0.001, decay, release },\n" +
+"    });\n" +
+"  const filt = (type, frequency, Q = 1) => new Tone.Filter({ type, frequency, Q });\n" +
+"\n" +
+"  const kBody  = route(drum(0.03, 9, 0.34), null, -2);\n" +
+"  const kKnock = route(drum(0.02, 3, 0.09), null, -9);\n" +
+"  const kClick = route(noise(0.012), [filt(\"highpass\", 3000, 0.7)], -20);\n" +
+"\n" +
+"  const sShell = route(drum(0.008, 2.2, 0.13, \"triangle\"), null, -9, 0.15);\n" +
+"  const sWires = route(noise(0.2), [filt(\"highpass\", 1800, 0.6), filt(\"lowpass\", 9000, 0.6)], -7, 0.18);\n" +
+"  const sCrack = route(noise(0.025), [filt(\"highpass\", 4500, 0.7)], -14);\n" +
+"\n" +
+"  const rNoise = route(noise(0.025), [filt(\"bandpass\", 2400, 2.5)], -6);\n" +
+"  const rTone  = route(drum(0.005, 1.4, 0.045, \"triangle\"), null, -12);\n" +
+"\n" +
+"  const clap = route(noise(0.17), [filt(\"bandpass\", 1250, 0.9)], -9, 0.25);\n" +
+"\n" +
+"  const tBody  = route(drum(0.045, 3, 0.4), null, -5, 0.15);\n" +
+"  const tClick = route(noise(0.01), [filt(\"highpass\", 2000, 0.7)], -22);\n" +
+"\n" +
+"  const hMetal = route(metal(250, 5.1, 32, 6000, 1.5, 0.05, 0.02), [filt(\"highpass\", 6500, 0.7)], -24);\n" +
+"  const hNoise = route(noise(0.04), [filt(\"highpass\", 8000, 0.7)], -28);\n" +
+"  const oMetal = route(metal(250, 5.1, 32, 5200, 1.5, 0.4, 0.25), [filt(\"highpass\", 6500, 0.7)], -27);\n" +
+"  const oNoise = route(noise(0.4), [filt(\"highpass\", 7000, 0.7)], -31);\n" +
+"\n" +
+"  const rideM  = route(metal(420, 3.8, 22, 3600, 1.2, 1.0, 0.6), [filt(\"highpass\", 3500, 0.7)], -29);\n" +
+"  const crashM = route(metal(300, 5.1, 40, 3800, 1.6, 2.0, 1.4), [filt(\"highpass\", 3000, 0.7)], -27, 0.2);\n" +
+"  const crashN = route(noise(1.5), [filt(\"highpass\", 5500, 0.7)], -33, 0.2);\n" +
+"\n" +
+"  await room.ready; // Reverb membuat impulse response secara async\n" +
+"  return {\n" +
+"    kick: (t, v) => {\n" +
+"      kBody.triggerAttackRelease(\"D1\", \"8n\", t, v);\n" +
+"      kKnock.triggerAttackRelease(\"F2\", \"16n\", t, v);\n" +
+"      kClick.triggerAttackRelease(\"64n\", t, v);\n" +
+"    },\n" +
+"    snare: (t, v) => {\n" +
+"      sShell.triggerAttackRelease(\"G3\", \"16n\", t, v);\n" +
+"      sWires.triggerAttackRelease(\"16n\", t, v);\n" +
+"      sCrack.triggerAttackRelease(\"64n\", t, v);\n" +
+"    },\n" +
+"    rim: (t, v) => {\n" +
+"      rNoise.triggerAttackRelease(\"64n\", t, v);\n" +
+"      rTone.triggerAttackRelease(\"B4\", \"64n\", t, v);\n" +
+"    },\n" +
+"    clap: (t, v) => {\n" +
+"      clap.triggerAttackRelease(\"32n\", t, 0.6 * v);\n" +
+"      clap.triggerAttackRelease(\"32n\", t + 0.011, 0.8 * v);\n" +
+"      clap.triggerAttackRelease(\"16n\", t + 0.022, v);\n" +
+"    },\n" +
+"    tom: (t, v) => {\n" +
+"      tBody.triggerAttackRelease(\"A2\", \"8n\", t, v);\n" +
+"      tClick.triggerAttackRelease(\"64n\", t, v);\n" +
+"    },\n" +
+"    hat: (t, v) => {\n" +
+"      oMetal.triggerRelease(t); oNoise.triggerRelease(t); // hat tertutup memotong hat terbuka\n" +
+"      hMetal.triggerAttackRelease(\"32n\", t, v);\n" +
+"      hNoise.triggerAttackRelease(\"32n\", t, v);\n" +
+"    },\n" +
+"    open: (t, v) => {\n" +
+"      oMetal.triggerAttackRelease(\"8n\", t, v);\n" +
+"      oNoise.triggerAttackRelease(\"8n\", t, v);\n" +
+"    },\n" +
+"    ride: (t, v) => rideM.triggerAttackRelease(\"8n\", t, v),\n" +
+"    crash: (t, v) => {\n" +
+"      crashM.triggerAttackRelease(\"2n\", t, v);\n" +
+"      crashN.triggerAttackRelease(\"2n\", t, v);\n" +
+"    },\n" +
+"  };\n" +
+"}\n" +
+"\n" +
+"// 3. ratakan arrangement: satu entri per step 1/16, isinya daftar [instrumen, velocity]\n" +
+"const song = arrangement.flatMap((name) => {\n" +
+"  const sec = sections[name];\n" +
+"  const bars = sec.patterns ?? Array(sec.bars).fill(sec.pattern);\n" +
+"  return bars.flatMap((pattern) =>\n" +
+"    Array.from({ length: 16 }, (_, i) =>\n" +
+"      Object.keys(pattern)\n" +
+"        .filter((inst) => pattern[inst][i])\n" +
+"        .map((inst) => [inst, VEL[pattern[inst][i]]])\n" +
+"    )\n" +
+"  );\n" +
+"});\n" +
+"\n" +
+"function schedule(transport, play) {\n" +
+"  let n = 0;\n" +
+"  transport.bpm.value = bpm;\n" +
+"  transport.swingSubdivision = \"16n\";\n" +
+"  transport.swing = swing;\n" +
+"  transport.scheduleRepeat((time) => {\n" +
+"    if (n >= song.length) return;\n" +
+"    song[n].forEach(([inst, v]) => play[inst](time, v));\n" +
+"    n++;\n" +
+"  }, \"16n\");\n" +
+"}\n" +
+"\n" +
+"// 4a. putar langsung (harus dari klik user)\n" +
+"async function playSong() {\n" +
+"  await Tone.start();\n" +
+"  schedule(Tone.Transport, await buildKit());\n" +
+"  Tone.Transport.start();\n" +
+"}\n" +
+"\n" +
+"// 4b. render seluruh lagu ke AudioBuffer (lebih cepat dari realtime)\n" +
+"async function renderSong() {\n" +
+"  const seconds = song.length * (60 / bpm / 4) + 2; // +2 dtk untuk tail\n" +
+"  return Tone.Offline(async ({ transport }) => {\n" +
+"    schedule(transport, await buildKit());\n" +
+"    transport.start();\n" +
+"  }, seconds);\n" +
+"}\n" +
+"// buffer.get() -> AudioBuffer; encode ke WAV dengan library mis. audiobuffer-to-wav\n" +
+"// Stem per instrumen: filter song[n] ke satu instrumen, render ulang per instrumen.\n";
+  }
+
+  var copyBtn = document.getElementById("copy");
+  copyBtn.addEventListener("click", function () {
+    var done = function () {
+      copyBtn.textContent = "tersalin";
+      setTimeout(function () { copyBtn.textContent = "salin"; }, 1400);
+    };
+    var fail = function () {
+      copyBtn.textContent = "pilih manual";
+      setTimeout(function () { copyBtn.textContent = "salin"; }, 1800);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(codeEl.textContent).then(done, fail);
+    } else fail();
+  });
+
+  // ---------- boot ----------
+  if (!restore()) initStarter();
+  curBar = 0; linked = allSame(active());
+  bpmEl.value = bpm; bpmV.textContent = bpm;
+  swEl.value = swing; swV.textContent = swing;
+  kitSel.value = kitName; humEl.checked = humanize;
+  renderTabs(); renderSecControls(); renderBarTabs(); paint(); renderArr(); renderTotal(); renderCode(); setButtons();
+})();
+</script>
+</body>
+</html>

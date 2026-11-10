@@ -1,0 +1,36 @@
+# Sistem operasi
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# Editor / IDE
+.vscode/
+.idea/
+*.swp
+
+# Python (tes)
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Node
+node_modules/
+
+# Rahasia dan lingkungan lokal
+.env
+.env.*
+
+# Android: hasil build, kunci, dan berkas lokal
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+android/.idea/
+captures/
+*.apk
+*.aab
+*.jks
+*.keystore
+
+# Log
+*.log

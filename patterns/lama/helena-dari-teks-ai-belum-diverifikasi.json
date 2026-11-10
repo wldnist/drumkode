@@ -1,0 +1,42 @@
+{
+  "format": "drumkode/pattern",
+  "name": "helena (transkripsi dari teks, belum diverifikasi)",
+  "bpm": 126,
+  "swing": 0,
+  "sections": [
+    { "name": "intro rest", "bars": 4, "pattern": { "kick": "................", "snare": "................", "hat": "................" } },
+    { "name": "intro groove", "patterns": [
+      { "crash": "x...............", "hat": "..x.x.x.x.x.x.x.", "snare": "....x.......x...", "kick": "x.....x.x.....x." },
+      { "hat": "x.x.x.x.x.x.x.x.", "snare": "....x.......x...", "kick": "x.....x.x......." }
+    ] },
+    { "name": "verse 1", "patterns": [
+      { "hat": "x.x.x.x.x.x.x.x.", "snare": "....x.......x...", "kick": "x...x.x...x....." },
+      { "hat": "x.x.x.x.x.x.x.x.", "snare": "....x.......x.x.", "kick": "x...x.x...x....." }
+    ] },
+    { "name": "pre-chorus", "patterns": [
+      { "hat": "x...x...x...x...", "snare": "....x.......x...", "kick": "x.......x......." },
+      { "hat": "x...x...x...x...", "snare": "....x...x.x.x.x.", "kick": "x.......x......." }
+    ] },
+    { "name": "chorus 1", "patterns": [
+      { "crash": "x...............", "ride": "..x.x.x.x.x.x.x.", "snare": "....x.......x...", "kick": "x.....x.....x..." },
+      { "ride": "x.x.x.x.x.x.x.x.", "snare": "....x.......x...", "kick": "x.....x.....x..." }
+    ] },
+    { "name": "chorus fill", "bars": 1, "pattern": { "snare": "....x...xxxxxx..", "kick": "x.....x........." } },
+    { "name": "verse 2", "patterns": [
+      { "hat": "X.X.X.X.X.X.X.X.", "snare": "....x.......x...", "kick": "x...x.x...x....." },
+      { "hat": "X.X.X.X.X.X.X.X.", "snare": "....x.......x.x.", "kick": "x...x.x...x....." }
+    ] },
+    { "name": "chorus 2", "patterns": [
+      { "crash": "X...............", "ride": "..X.X.X.X.X.X.X.", "snare": "....x.......x...", "kick": "x.....x.....x..." },
+      { "ride": "X.X.X.X.X.X.X.X.", "snare": "....x.......x...", "kick": "x.....x.....x..." }
+    ] },
+    { "name": "bridge", "bars": 2, "pattern": { "tom": "x.x.x.x.x.x.x.x.", "snare": "....x.......x...", "kick": "x.....x.x.....x." } },
+    { "name": "bridge buildup", "patterns": [
+      { "tom": "x.x.x.x.x.x.x.x.", "snare": "ooooooooxxxxxxxx", "kick": "x.....x.x.....x." },
+      { "tom": "xxxxxxxxxxxxxxxx", "snare": "xxxxxxxxXXXXXXXX", "kick": "x.....x.x.....x." }
+    ] },
+    { "name": "outro", "bars": 2, "pattern": { "crash": "x...x...x...x...", "snare": "....x.......x...", "kick": "x.....x.x.....x." } },
+    { "name": "ending", "bars": 1, "pattern": { "kick": "X...............", "snare": "X...............", "crash": "X..............." } }
+  ],
+  "arrangement": ["intro rest", "intro groove", "verse 1", "pre-chorus", "chorus 1", "chorus fill", "verse 2", "chorus 2", "bridge", "bridge", "bridge buildup", "outro", "ending"]
+}

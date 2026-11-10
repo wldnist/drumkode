@@ -1,0 +1,961 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>drumkode v0.0.1 — arrangement sequencer Tone.js</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  color-scheme: light;
+  box-sizing: border-box;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  --paper:#E6E9E4; --panel:#F3F5F1; --ink:#16211B; --soft:#5C6B63; --rule:#C9D0C8;
+  --cell:rgba(22,33,27,.07); --cell-hi:rgba(22,33,27,.14); --play:rgba(22,33,27,.11);
+  --l1:#2B4C7E; --l2:#3E7CA8; --l3:#3F9478; --l4:#7E9E33; --l5:#C08A1E;
+  --code-bg:#EDF0EB; --now:#3F9478;
+  --gap:3px;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme: dark;
+    --paper:#121815; --panel:#1A221E; --ink:#E3E9E2; --soft:#8A9790; --rule:#2B3631;
+    --cell:rgba(227,233,226,.09); --cell-hi:rgba(227,233,226,.18); --play:rgba(227,233,226,.09);
+    --l1:#5B8FD0; --l2:#58A8D8; --l3:#4FC2A0; --l4:#A8CC4B; --l5:#E0B341;
+    --code-bg:#141B18; --now:#4FC2A0;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme: dark;
+  --paper:#121815; --panel:#1A221E; --ink:#E3E9E2; --soft:#8A9790; --rule:#2B3631;
+  --cell:rgba(227,233,226,.09); --cell-hi:rgba(227,233,226,.18); --play:rgba(227,233,226,.09);
+  --l1:#5B8FD0; --l2:#58A8D8; --l3:#4FC2A0; --l4:#A8CC4B; --l5:#E0B341;
+  --code-bg:#141B18; --now:#4FC2A0;
+}
+*,*::before,*::after{ box-sizing:inherit; }
+html,body{ margin:0; }
+body{
+  background:var(--paper); color:var(--ink);
+  font-family:"JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size:13px; line-height:1.55; -webkit-text-size-adjust:100%;
+}
+.wrap{ max-width:760px; margin:0 auto; padding:22px 16px 56px; }
+h1{ font-family:"Archivo", system-ui, sans-serif; font-weight:700; font-size:30px; line-height:1; letter-spacing:-.025em; margin:0 0 7px; }
+.masthead{ margin-bottom:22px; }
+.masthead p{ margin:0; color:var(--soft); font-size:12px; max-width:52ch; }
+h2{ font-family:"Archivo", system-ui, sans-serif; font-size:14px; font-weight:600; margin:0; letter-spacing:-.01em; }
+.note{ font-size:11px; color:var(--soft); margin:6px 0 10px; max-width:56ch; }
+section.block{ margin-bottom:26px; }
+
+/* transport */
+.transport{
+  display:flex; align-items:center; gap:12px; flex-wrap:wrap;
+  background:var(--panel); border:1px solid var(--rule); border-radius:3px;
+  padding:11px 12px; margin-bottom:8px;
+}
+.btns{ display:flex; gap:8px; }
+.play{
+  font:inherit; font-weight:700; font-size:13px;
+  color:var(--paper); background:var(--ink);
+  border:1px solid var(--ink); border-radius:3px;
+  padding:9px 14px; min-width:112px; cursor:pointer;
+}
+.play.alt{ background:transparent; color:var(--ink); }
+.play[data-on="1"]{ background:var(--now); border-color:var(--now); color:#06110C; }
+.dials{ display:flex; gap:16px; flex:1 1 190px; min-width:0; }
+.dial{ flex:1 1 0; min-width:0; }
+.dial label{ display:flex; justify-content:space-between; gap:8px; font-size:11px; color:var(--soft); margin-bottom:3px; }
+.dial b{ color:var(--ink); font-weight:700; }
+input[type=range]{ -webkit-appearance:none; appearance:none; width:100%; height:18px; background:transparent; margin:0; cursor:pointer; }
+input[type=range]::-webkit-slider-runnable-track{ height:3px; background:var(--rule); border-radius:2px; }
+input[type=range]::-moz-range-track{ height:3px; background:var(--rule); border-radius:2px; }
+input[type=range]::-webkit-slider-thumb{ -webkit-appearance:none; width:16px; height:16px; border-radius:50%; background:var(--ink); border:0; margin-top:-6.5px; }
+input[type=range]::-moz-range-thumb{ width:16px; height:16px; border-radius:50%; background:var(--ink); border:0; }
+.status{ font-size:11px; color:var(--soft); margin:0 0 20px; min-height:1.55em; }
+.status b{ color:var(--ink); }
+
+/* chips */
+.chip{
+  font:inherit; font-size:11px; color:var(--ink);
+  background:var(--panel); border:1px solid var(--rule); border-radius:3px;
+  padding:6px 11px; cursor:pointer;
+}
+.chip:hover{ border-color:var(--ink); }
+.chip.on{ background:var(--ink); color:var(--paper); border-color:var(--ink); }
+.chip.ghost{ background:none; color:var(--soft); }
+.chip:disabled{ opacity:.4; cursor:not-allowed; }
+.chip:focus-visible, .play:focus-visible, .mini:focus-visible{ outline:2px solid var(--ink); outline-offset:2px; }
+
+/* sections */
+.tabs{ display:flex; flex-wrap:wrap; gap:6px; margin-bottom:10px; }
+.secbar{ display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-bottom:14px; }
+.field{ display:flex; align-items:center; gap:6px; font-size:11px; color:var(--soft); }
+.field input, .field select{
+  font:inherit; font-size:12px; color:var(--ink);
+  background:var(--panel); border:1px solid var(--rule); border-radius:3px; padding:5px 8px;
+}
+.field input[type=text]{ width:122px; }
+.secbar .spacer{ flex:1; }
+
+/* grid */
+.machine{ position:relative; margin-bottom:18px; }
+.row16{ display:grid; grid-template-columns:repeat(16,1fr); gap:var(--gap); }
+.ruler{ margin-bottom:9px; }
+.ruler span{ font-size:10px; color:var(--soft); text-align:center; border-top:1px solid var(--rule); padding-top:3px; }
+.ruler span.beat{ color:var(--ink); border-top-color:var(--ink); }
+.playhead{
+  position:absolute; top:0; bottom:0; left:0;
+  width:calc((100% - 15 * var(--gap)) / 16);
+  background:var(--play); border-radius:2px;
+  transform:translateX(calc(var(--i) * 100% + var(--i) * var(--gap)));
+  transition:transform .05s linear; pointer-events:none; opacity:0;
+}
+.playhead.live{ opacity:1; }
+@media (prefers-reduced-motion: reduce){ .playhead{ transition:none; } }
+.lane{ margin-bottom:11px; position:relative; }
+.lane:last-child{ margin-bottom:0; }
+.name{
+  font:inherit; font-size:11px; color:var(--soft);
+  background:none; border:0; padding:0 0 4px; margin:0; cursor:pointer;
+  display:inline-flex; align-items:center; gap:6px;
+}
+.name::before{ content:""; width:7px; height:7px; border-radius:50%; background:var(--hue); }
+.name:hover{ color:var(--ink); }
+.cell{
+  appearance:none; -webkit-appearance:none; border:0; padding:0; margin:0;
+  height:30px; border-radius:2px; background:var(--cell); cursor:pointer;
+  position:relative; z-index:1; transition:background .08s ease, transform .06s ease;
+}
+.cell.down{ box-shadow:inset 0 0 0 1px var(--cell-hi); }
+.cell[aria-pressed="true"]{ background:var(--hue); }
+.cell:active{ transform:scale(.9); }
+.cell.flash{ background:var(--cell-hi); }
+.cell[aria-pressed="true"].flash{ filter:brightness(1.45); }
+.cell:focus-visible{ outline:2px solid var(--ink); outline-offset:2px; }
+
+.shelf{ display:flex; flex-wrap:wrap; gap:6px; align-items:center; padding-top:16px; border-top:1px solid var(--rule); margin-bottom:28px; }
+.shelf .tag{ font-size:11px; color:var(--soft); margin-right:4px; }
+.shelf .chip.ghost{ margin-left:auto; }
+
+/* arrangement */
+.arr{ display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px; min-height:34px; }
+.arr-item{
+  display:inline-flex; align-items:stretch;
+  background:var(--panel); border:1px solid var(--rule); border-radius:3px; overflow:hidden;
+}
+.arr-item.now{ border-color:var(--now); box-shadow:inset 0 -3px 0 var(--now); }
+.arr-name{ font:inherit; font-size:11px; color:var(--ink); background:none; border:0; padding:6px 9px; cursor:pointer; }
+.mini{ font:inherit; font-size:12px; color:var(--soft); background:none; border:0; border-left:1px solid var(--rule); padding:0 8px; cursor:pointer; min-width:26px; }
+.mini:hover{ color:var(--ink); background:var(--cell); }
+.mini:disabled{ opacity:.3; cursor:default; }
+.arr-empty{ font-size:11px; color:var(--soft); align-self:center; }
+.addrow{ display:flex; flex-wrap:wrap; gap:6px; align-items:center; }
+.addrow .tag{ font-size:11px; color:var(--soft); margin-right:4px; }
+.total{ font-size:11px; color:var(--soft); margin:0 0 10px; }
+.total b{ color:var(--ink); }
+
+/* code */
+.codehead{ display:flex; align-items:baseline; gap:12px; margin-bottom:2px; }
+.codehead .copy{ font:inherit; font-size:11px; margin-left:auto; background:none; border:1px solid var(--rule); border-radius:3px; color:var(--ink); padding:4px 10px; cursor:pointer; }
+.codehead .copy:hover{ border-color:var(--ink); }
+pre{ margin:0; padding:13px 14px; background:var(--code-bg); border:1px solid var(--rule); border-radius:3px; overflow:auto; font-size:11.5px; line-height:1.65; max-height:420px; }
+code{ font-family:inherit; white-space:pre; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="masthead">
+    <h1>drumkode <span style="font-size:11px;font-weight:400;letter-spacing:0;color:var(--soft);margin-left:6px">v0.0.1</span></h1>
+    <p>Susun section (intro, verse, chorus), atur urutannya, lalu putar satu section atau seluruh lagu. Kode Tone.js untuk arrangement penuh dibuat otomatis di bawah.</p>
+  </header>
+
+  <div class="transport">
+    <div class="btns">
+      <button class="play alt" id="playSec" data-on="0">Putar section</button>
+      <button class="play" id="playSong" data-on="0">Putar lagu</button>
+    </div>
+    <div class="dials">
+      <div class="dial">
+        <label for="bpm">tempo <b><span id="bpmv">88</span> bpm</b></label>
+        <input type="range" id="bpm" min="60" max="180" step="1" value="88">
+      </div>
+      <div class="dial">
+        <label for="swing">swing <b><span id="swingv">25</span>%</b></label>
+        <input type="range" id="swing" min="0" max="60" step="1" value="25">
+      </div>
+    </div>
+  </div>
+  <p class="status" id="status"></p>
+
+  <section class="block" aria-label="Section">
+    <div class="tabs" id="tabs"></div>
+    <div class="secbar">
+      <label class="field">nama <input type="text" id="secName" maxlength="16" autocomplete="off"></label>
+      <label class="field">panjang <select id="secBars"></select> bar</label>
+      <span class="spacer"></span>
+      <button class="chip ghost" id="dup">duplikat</button>
+      <button class="chip ghost" id="del">hapus</button>
+    </div>
+
+    <div class="machine">
+      <div class="playhead" id="playhead" style="--i:0"></div>
+      <div class="row16 ruler" id="ruler"></div>
+      <div id="lanes"></div>
+    </div>
+
+    <div class="shelf">
+      <span class="tag">isi pola:</span>
+      <button class="chip" data-preset="boombap">boom bap</button>
+      <button class="chip" data-preset="house">four on the floor</button>
+      <button class="chip" data-preset="break">breakbeat</button>
+      <button class="chip" data-preset="trap">trap</button>
+      <button class="chip ghost" id="clear">kosongkan</button>
+    </div>
+  </section>
+
+  <section class="block" aria-label="Urutan lagu">
+    <h2>Urutan lagu</h2>
+    <p class="note">Ketuk nama untuk mengedit section itu. Satu section bisa dipakai berkali-kali.</p>
+    <div class="arr" id="arr"></div>
+    <p class="total" id="total"></p>
+    <div class="addrow" id="addrow"></div>
+  </section>
+
+  <section class="block" aria-label="Kode">
+    <div class="codehead">
+      <h2>Kode Tone.js (arrangement penuh)</h2>
+      <button class="copy" id="copy">salin</button>
+    </div>
+    <p class="note">Satu bagian <code>schedule()</code> dipakai untuk dua hal: putar langsung, atau <code>Tone.Offline</code> untuk render seluruh lagu jadi AudioBuffer.</p>
+    <pre><code id="code"></code></pre>
+  </section>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
+<script>
+(function () {
+  "use strict";
+
+  var STEPS = 16;
+  var STORE_KEY = "drumkode:v2";
+  var BAR_CHOICES = [1,2,3,4,5,6,7,8,12,16];
+
+  var LANES = [
+    { id: "kick",  label: "kick",       hue: "var(--l1)" },
+    { id: "snare", label: "snare",      hue: "var(--l2)" },
+    { id: "clap",  label: "clap",       hue: "var(--l3)" },
+    { id: "hat",   label: "closed hat", hue: "var(--l4)" },
+    { id: "open",  label: "open hat",   hue: "var(--l5)" }
+  ];
+
+  var Z = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0];
+
+  var PRESETS = {
+    boombap: {
+      kick:  [1,0,0,0,0,0,1,0,0,0,1,0,0,0,0,0],
+      snare: [0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0],
+      clap:  Z,
+      hat:   [1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0],
+      open:  [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1]
+    },
+    house: {
+      kick:  [1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0],
+      snare: Z,
+      clap:  [0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0],
+      hat:   [0,0,1,0,0,0,1,0,0,0,1,0,0,0,1,0],
+      open:  Z
+    },
+    break: {
+      kick:  [1,0,0,0,0,0,1,0,0,0,0,0,0,0,1,0],
+      snare: [0,0,0,0,1,0,0,0,0,0,1,0,1,0,0,0],
+      clap:  Z,
+      hat:   [1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0],
+      open:  [0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0]
+    },
+    trap: {
+      kick:  [1,0,0,0,0,0,1,0,0,1,0,0,0,0,0,0],
+      snare: [0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0],
+      clap:  [0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0],
+      hat:   [1,0,1,1,1,0,1,0,1,1,1,0,1,0,1,1],
+      open:  Z
+    }
+  };
+
+  // contoh lagu awal
+  var STARTER = [
+    { name: "intro", bars: 2, pattern: {
+        kick:  [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+        snare: Z, clap: Z,
+        hat:   [1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0],
+        open:  Z } },
+    { name: "verse", bars: 4, pattern: PRESETS.boombap },
+    { name: "fill", bars: 1, pattern: {
+        kick:  [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+        snare: [0,0,0,0,0,0,0,0,1,0,1,0,1,1,1,1],
+        clap:  Z,
+        hat:   [1,0,1,0,1,0,1,0,0,0,0,0,0,0,0,0],
+        open:  Z } },
+    { name: "chorus", bars: 4, pattern: {
+        kick:  [1,0,0,0,0,0,1,0,0,0,1,0,0,0,0,1],
+        snare: [0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0],
+        clap:  [0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0],
+        hat:   [1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0],
+        open:  [0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0] } }
+  ];
+  var STARTER_ARR = [0, 1, 1, 2, 3, 3]; // indeks ke STARTER
+
+  // ---------- state ----------
+  var sections = [];
+  var arrangement = [];   // daftar id section
+  var activeId = null;
+  var bpm = 88, swing = 25;
+  var nextId = 1;
+
+  var running = null;     // null | "section" | "song"
+  var step = 0;
+  var ready = false;
+  var kit = null;
+  var cells = {};
+
+  function copyPattern(p) {
+    var o = {};
+    LANES.forEach(function (l) { o[l.id] = p[l.id].map(function (v) { return v ? 1 : 0; }); });
+    return o;
+  }
+  function emptyPattern() { return copyPattern({ kick: Z, snare: Z, clap: Z, hat: Z, open: Z }); }
+  function makeSection(name, bars, pattern) {
+    return { id: "s" + (nextId++), name: name, bars: bars, pattern: copyPattern(pattern) };
+  }
+  function byId(id) {
+    for (var i = 0; i < sections.length; i++) if (sections[i].id === id) return sections[i];
+    return null;
+  }
+  function active() { return byId(activeId); }
+
+  function initStarter() {
+    sections = STARTER.map(function (s) { return makeSection(s.name, s.bars, s.pattern); });
+    arrangement = STARTER_ARR.map(function (i) { return sections[i].id; });
+    activeId = sections[1].id;
+    bpm = 88; swing = 25;
+  }
+
+  // ---------- persistence (terbatas ke browser ini) ----------
+  function save() {
+    try {
+      localStorage.setItem(STORE_KEY, JSON.stringify({
+        bpm: bpm, swing: swing, sections: sections, arrangement: arrangement, activeId: activeId
+      }));
+    } catch (e) { /* storage bisa kosong/diblokir: abaikan */ }
+  }
+  function restore() {
+    try {
+      var raw = localStorage.getItem(STORE_KEY);
+      if (!raw) return false;
+      var d = JSON.parse(raw);
+      if (!d || !Array.isArray(d.sections) || !d.sections.length) return false;
+      var ok = d.sections.every(function (s) {
+        return s && typeof s.id === "string" && typeof s.name === "string" &&
+          typeof s.bars === "number" && s.bars >= 1 && s.bars <= 16 && s.pattern &&
+          LANES.every(function (l) { return Array.isArray(s.pattern[l.id]) && s.pattern[l.id].length === STEPS; });
+      });
+      if (!ok) return false;
+      sections = d.sections.map(function (s) {
+        return { id: s.id, name: s.name.slice(0, 16), bars: Math.round(s.bars), pattern: copyPattern(s.pattern) };
+      });
+      var max = 0;
+      sections.forEach(function (s) { var n = parseInt(s.id.slice(1), 10); if (n > max) max = n; });
+      nextId = max + 1;
+      arrangement = (Array.isArray(d.arrangement) ? d.arrangement : []).filter(function (id) { return !!byId(id); });
+      activeId = byId(d.activeId) ? d.activeId : sections[0].id;
+      bpm = Math.min(180, Math.max(60, Number(d.bpm) || 88));
+      swing = Math.min(60, Math.max(0, Number(d.swing) || 0));
+      return true;
+    } catch (e) { return false; }
+  }
+
+  // ---------- kit ----------
+  function buildKit() {
+    var out = new Tone.Limiter(-1).toDestination();
+
+    var kick = new Tone.MembraneSynth({
+      pitchDecay: 0.045, octaves: 8, oscillator: { type: "sine" },
+      envelope: { attack: 0.001, decay: 0.42, sustain: 0.01, release: 1.2 }
+    });
+    kick.volume.value = -3; kick.connect(out);
+
+    var snareBody = new Tone.MembraneSynth({
+      pitchDecay: 0.01, octaves: 2,
+      envelope: { attack: 0.001, decay: 0.12, sustain: 0, release: 0.1 }
+    });
+    snareBody.volume.value = -14; snareBody.connect(out);
+
+    var snareTop = new Tone.NoiseSynth({
+      noise: { type: "white" }, envelope: { attack: 0.001, decay: 0.16, sustain: 0 }
+    });
+    snareTop.volume.value = -10;
+    snareTop.chain(new Tone.Filter(1400, "highpass"), out);
+
+    var clap = new Tone.NoiseSynth({
+      noise: { type: "white" }, envelope: { attack: 0.002, decay: 0.22, sustain: 0 }
+    });
+    clap.volume.value = -11;
+    clap.chain(new Tone.Filter({ type: "bandpass", frequency: 1100, Q: 1.4 }), out);
+
+    var hat = new Tone.MetalSynth({
+      frequency: 250, envelope: { attack: 0.001, decay: 0.045, release: 0.01 },
+      harmonicity: 5.1, modulationIndex: 32, resonance: 6000, octaves: 1.5
+    });
+    hat.volume.value = -26; hat.connect(out);
+
+    var open = new Tone.MetalSynth({
+      frequency: 250, envelope: { attack: 0.001, decay: 0.38, release: 0.2 },
+      harmonicity: 5.1, modulationIndex: 32, resonance: 5000, octaves: 1.5
+    });
+    open.volume.value = -29; open.connect(out);
+
+    return { kick: kick, snareBody: snareBody, snareTop: snareTop, clap: clap, hat: hat, open: open };
+  }
+
+  function hit(id, time) {
+    if (!kit) return;
+    if (id === "kick") kit.kick.triggerAttackRelease("C1", "8n", time);
+    else if (id === "snare") {
+      kit.snareBody.triggerAttackRelease("A2", "16n", time);
+      kit.snareTop.triggerAttackRelease("16n", time);
+    } else if (id === "clap") {
+      var t = time === undefined ? Tone.now() : time;
+      kit.clap.triggerAttackRelease("16n", t, 0.6);
+      kit.clap.triggerAttackRelease("16n", t + 0.013, 0.8);
+      kit.clap.triggerAttackRelease("8n", t + 0.026, 1);
+    }
+    else if (id === "hat") kit.hat.triggerAttackRelease("32n", time);
+    else if (id === "open") kit.open.triggerAttackRelease("8n", time);
+  }
+
+  // ---------- grid DOM ----------
+  var ruler = document.getElementById("ruler");
+  for (var r = 0; r < STEPS; r++) {
+    var rs = document.createElement("span");
+    if (r % 4 === 0) { rs.className = "beat"; rs.textContent = String(r / 4 + 1); }
+    else rs.textContent = "\u00B7";
+    ruler.appendChild(rs);
+  }
+
+  var lastLit = [];
+  function clearFlash() {
+    lastLit.forEach(function (c) { c.classList.remove("flash"); });
+    lastLit = [];
+  }
+
+  var lanesEl = document.getElementById("lanes");
+  LANES.forEach(function (lane) {
+    var wrap = document.createElement("div");
+    wrap.className = "lane";
+    wrap.style.setProperty("--hue", lane.hue);
+
+    var name = document.createElement("button");
+    name.className = "name"; name.type = "button"; name.textContent = lane.label;
+    name.setAttribute("aria-label", "Dengarkan " + lane.label);
+    name.addEventListener("click", function () { ensureAudio().then(function () { hit(lane.id); }); });
+    wrap.appendChild(name);
+
+    var row = document.createElement("div");
+    row.className = "row16";
+    cells[lane.id] = [];
+    for (var i = 0; i < STEPS; i++) {
+      (function (index) {
+        var c = document.createElement("button");
+        c.className = "cell" + (index % 4 === 0 ? " down" : "");
+        c.type = "button";
+        c.setAttribute("aria-pressed", "false");
+        c.setAttribute("aria-label", lane.label + " langkah " + (index + 1));
+        c.addEventListener("click", function () {
+          var sec = active(); if (!sec) return;
+          var on = sec.pattern[lane.id][index] ? 0 : 1;
+          sec.pattern[lane.id][index] = on;
+          c.setAttribute("aria-pressed", on ? "true" : "false");
+          if (on && !running) ensureAudio().then(function () { hit(lane.id); });
+          renderCode(); save();
+        });
+        row.appendChild(c);
+        cells[lane.id].push(c);
+      })(i);
+    }
+    wrap.appendChild(row);
+    lanesEl.appendChild(wrap);
+  });
+
+  function paint() {
+    var sec = active(); if (!sec) return;
+    clearFlash();
+    LANES.forEach(function (l) {
+      for (var i = 0; i < STEPS; i++) {
+        cells[l.id][i].setAttribute("aria-pressed", sec.pattern[l.id][i] ? "true" : "false");
+      }
+    });
+  }
+
+  // ---------- section UI ----------
+  var tabsEl = document.getElementById("tabs");
+  var nameEl = document.getElementById("secName");
+  var barsEl = document.getElementById("secBars");
+  var delBtn = document.getElementById("del");
+  var arrEl = document.getElementById("arr");
+  var addRow = document.getElementById("addrow");
+  var totalEl = document.getElementById("total");
+  var statusEl = document.getElementById("status");
+
+  BAR_CHOICES.forEach(function (n) {
+    var o = document.createElement("option");
+    o.value = String(n); o.textContent = String(n);
+    barsEl.appendChild(o);
+  });
+
+  function renderTabs() {
+    tabsEl.textContent = "";
+    sections.forEach(function (s) {
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "chip" + (s.id === activeId ? " on" : "");
+      b.textContent = s.name || "(tanpa nama)";
+      b.setAttribute("aria-pressed", s.id === activeId ? "true" : "false");
+      b.addEventListener("click", function () { setActive(s.id); });
+      tabsEl.appendChild(b);
+    });
+    var add = document.createElement("button");
+    add.type = "button"; add.className = "chip ghost"; add.textContent = "+ section";
+    add.addEventListener("click", addSection);
+    tabsEl.appendChild(add);
+  }
+
+  function renderSecControls() {
+    var sec = active(); if (!sec) return;
+    nameEl.value = sec.name;
+    if (BAR_CHOICES.indexOf(sec.bars) < 0) {
+      var o = document.createElement("option");
+      o.value = String(sec.bars); o.textContent = String(sec.bars);
+      barsEl.appendChild(o);
+    }
+    barsEl.value = String(sec.bars);
+    delBtn.disabled = sections.length < 2;
+  }
+
+  function setActive(id) {
+    if (!byId(id)) return;
+    activeId = id;
+    paint(); renderTabs(); renderSecControls(); save();
+  }
+
+  function addSection() {
+    var s = makeSection("section " + (sections.length + 1), 2, emptyPattern());
+    sections.push(s);
+    activeId = s.id;
+    paint(); renderSecControls(); structureChanged();
+  }
+
+  nameEl.addEventListener("input", function () {
+    var sec = active(); if (!sec) return;
+    sec.name = nameEl.value.slice(0, 16);
+    structureChanged();
+  });
+  barsEl.addEventListener("change", function () {
+    var sec = active(); if (!sec) return;
+    var n = parseInt(barsEl.value, 10);
+    if (n >= 1 && n <= 16) { sec.bars = n; structureChanged(); }
+  });
+  document.getElementById("dup").addEventListener("click", function () {
+    var sec = active(); if (!sec) return;
+    var c = makeSection((sec.name + " 2").slice(0, 16), sec.bars, sec.pattern);
+    sections.splice(sections.indexOf(sec) + 1, 0, c);
+    activeId = c.id;
+    paint(); renderSecControls(); structureChanged();
+  });
+  delBtn.addEventListener("click", function () {
+    if (sections.length < 2) return;
+    var sec = active(); if (!sec) return;
+    sections = sections.filter(function (s) { return s.id !== sec.id; });
+    arrangement = arrangement.filter(function (id) { return id !== sec.id; });
+    activeId = sections[0].id;
+    paint(); renderSecControls(); structureChanged();
+  });
+
+  // ---------- arrangement UI ----------
+  function mkMini(text, label, disabled, fn) {
+    var b = document.createElement("button");
+    b.type = "button"; b.className = "mini"; b.textContent = text;
+    b.setAttribute("aria-label", label); b.disabled = !!disabled;
+    b.addEventListener("click", fn);
+    return b;
+  }
+
+  function renderArr() {
+    arrEl.textContent = "";
+    if (!arrangement.length) {
+      var e = document.createElement("span");
+      e.className = "arr-empty";
+      e.textContent = "Urutan kosong. Tambahkan section di bawah.";
+      arrEl.appendChild(e);
+    }
+    arrangement.forEach(function (id, k) {
+      var s = byId(id); if (!s) return;
+      var item = document.createElement("div");
+      item.className = "arr-item"; item.dataset.idx = String(k);
+
+      var nm = document.createElement("button");
+      nm.type = "button"; nm.className = "arr-name";
+      nm.textContent = (k + 1) + ". " + s.name + " \u00B7 " + s.bars + " bar";
+      nm.addEventListener("click", function () { setActive(s.id); });
+      item.appendChild(nm);
+
+      item.appendChild(mkMini("\u2039", "Geser ke kiri", k === 0, function () { moveArr(k, -1); }));
+      item.appendChild(mkMini("\u203A", "Geser ke kanan", k === arrangement.length - 1, function () { moveArr(k, 1); }));
+      item.appendChild(mkMini("\u2715", "Hapus dari urutan", false, function () {
+        arrangement.splice(k, 1); structureChanged();
+      }));
+      arrEl.appendChild(item);
+    });
+
+    addRow.textContent = "";
+    var tag = document.createElement("span");
+    tag.className = "tag"; tag.textContent = "tambah ke urutan:";
+    addRow.appendChild(tag);
+    sections.forEach(function (s) {
+      var b = document.createElement("button");
+      b.type = "button"; b.className = "chip"; b.textContent = "+ " + (s.name || "(tanpa nama)");
+      b.addEventListener("click", function () { arrangement.push(s.id); structureChanged(); });
+      addRow.appendChild(b);
+    });
+    markNow(-1);
+  }
+
+  function moveArr(k, dir) {
+    var j = k + dir;
+    if (j < 0 || j >= arrangement.length) return;
+    var t = arrangement[k]; arrangement[k] = arrangement[j]; arrangement[j] = t;
+    structureChanged();
+  }
+
+  function markNow(idx) {
+    Array.prototype.forEach.call(arrEl.querySelectorAll(".arr-item"), function (el) {
+      el.classList.toggle("now", parseInt(el.dataset.idx, 10) === idx);
+    });
+  }
+
+  function totalBars() {
+    var n = 0;
+    arrangement.forEach(function (id) { var s = byId(id); if (s) n += s.bars; });
+    return n;
+  }
+  function fmtTime(sec) {
+    var m = Math.floor(sec / 60), s = Math.round(sec % 60);
+    if (s === 60) { m++; s = 0; }
+    return m + ":" + (s < 10 ? "0" : "") + s;
+  }
+  function renderTotal() {
+    var bars = totalBars();
+    var secs = bars * 4 * 60 / bpm;
+    totalEl.textContent = "";
+    var b = document.createElement("b");
+    b.textContent = bars + " bar";
+    totalEl.appendChild(b);
+    totalEl.appendChild(document.createTextNode(" \u00B7 " + fmtTime(secs) + " pada " + bpm + " bpm"));
+    if (!running) idleStatus();
+  }
+
+  function idleStatus() {
+    statusEl.textContent = "Siap. \"Putar section\" memutar section terpilih berulang; \"Putar lagu\" memutar urutan dari awal.";
+  }
+
+  function structureChanged() {
+    renderTabs(); renderArr(); renderTotal(); renderCode(); save();
+    if (running === "song") markNow(-1);
+  }
+
+  // ---------- presets ----------
+  Array.prototype.forEach.call(document.querySelectorAll("[data-preset]"), function (b) {
+    b.addEventListener("click", function () {
+      var sec = active(); var p = PRESETS[b.dataset.preset];
+      if (!sec || !p) return;
+      sec.pattern = copyPattern(p);
+      paint(); renderCode(); save();
+    });
+  });
+  document.getElementById("clear").addEventListener("click", function () {
+    var sec = active(); if (!sec) return;
+    sec.pattern = emptyPattern();
+    paint(); renderCode(); save();
+  });
+
+  // ---------- audio + playback ----------
+  function ensureAudio() {
+    if (ready) return Promise.resolve();
+    return Tone.start().then(function () {
+      if (ready) return;
+      kit = buildKit();
+      Tone.Transport.bpm.value = bpm;
+      Tone.Transport.swingSubdivision = "16n";
+      Tone.Transport.swing = swing / 100;
+      Tone.Transport.scheduleRepeat(tick, "16n");
+      ready = true;
+    });
+  }
+
+  function locateSection(n) {
+    var sec = active(); if (!sec) return null;
+    return { secId: sec.id, arrIdx: -1, bar: Math.floor(n / STEPS) % sec.bars, bars: sec.bars, i: n % STEPS };
+  }
+  function locateSong(n) {
+    var total = 0;
+    arrangement.forEach(function (id) { var s = byId(id); if (s) total += s.bars * STEPS; });
+    if (!total) return null;
+    var pos = n % total;
+    for (var k = 0; k < arrangement.length; k++) {
+      var s = byId(arrangement[k]); if (!s) continue;
+      var len = s.bars * STEPS;
+      if (pos < len) return { secId: s.id, arrIdx: k, bar: Math.floor(pos / STEPS), bars: s.bars, i: pos % STEPS };
+      pos -= len;
+    }
+    return null;
+  }
+
+  function tick(time) {
+    if (!running) return;
+    var loc = running === "song" ? locateSong(step) : locateSection(step);
+    if (!loc) { Tone.Draw.schedule(stopPlayback, time); return; }
+    var sec = byId(loc.secId);
+    if (sec) {
+      LANES.forEach(function (l) { if (sec.pattern[l.id][loc.i]) hit(l.id, time); });
+    }
+    Tone.Draw.schedule(function () { showPos(loc); }, time);
+    step++;
+  }
+
+  var head = document.getElementById("playhead");
+  function showPos(loc) {
+    if (!running) return;
+    if (running === "song" && loc.secId !== activeId) setActive(loc.secId);
+    head.classList.add("live");
+    head.style.setProperty("--i", loc.i);
+    clearFlash();
+    var sec = byId(loc.secId);
+    if (sec && loc.secId === activeId) {
+      LANES.forEach(function (l) {
+        if (sec.pattern[l.id][loc.i]) {
+          var c = cells[l.id][loc.i];
+          c.classList.add("flash"); lastLit.push(c);
+        }
+      });
+    }
+    markNow(loc.arrIdx);
+    statusEl.textContent = "";
+    var b = document.createElement("b");
+    b.textContent = sec ? sec.name : "";
+    statusEl.appendChild(b);
+    statusEl.appendChild(document.createTextNode(
+      " \u00B7 bar " + (loc.bar + 1) + "/" + loc.bars +
+      (running === "song" ? " \u00B7 bagian " + (loc.arrIdx + 1) + "/" + arrangement.length : " \u00B7 loop")
+    ));
+  }
+
+  var btnSec = document.getElementById("playSec");
+  var btnSong = document.getElementById("playSong");
+
+  function setButtons() {
+    btnSec.dataset.on = running === "section" ? "1" : "0";
+    btnSong.dataset.on = running === "song" ? "1" : "0";
+    btnSec.textContent = running === "section" ? "Stop" : "Putar section";
+    btnSong.textContent = running === "song" ? "Stop" : "Putar lagu";
+  }
+
+  function stopPlayback() {
+    if (ready) Tone.Transport.stop();
+    running = null; step = 0;
+    head.classList.remove("live");
+    clearFlash(); markNow(-1); setButtons(); idleStatus();
+  }
+
+  function startPlayback(mode) {
+    if (mode === "song" && !arrangement.length) {
+      statusEl.textContent = "Urutan lagu masih kosong. Tambahkan section dulu.";
+      return;
+    }
+    ensureAudio().then(function () {
+      if (running) Tone.Transport.stop();
+      step = 0;
+      running = mode;
+      if (mode === "song") {
+        var first = locateSong(0);
+        if (first && first.secId !== activeId) setActive(first.secId);
+      }
+      Tone.Transport.start();
+      setButtons();
+    }).catch(function (e) {
+      statusEl.textContent = "Audio gagal dimulai. Coba ketuk lagi.";
+      console.error(e);
+    });
+  }
+
+  btnSec.addEventListener("click", function () {
+    if (running === "section") stopPlayback(); else startPlayback("section");
+  });
+  btnSong.addEventListener("click", function () {
+    if (running === "song") stopPlayback(); else startPlayback("song");
+  });
+
+  // ---------- dials ----------
+  var bpmEl = document.getElementById("bpm"), bpmV = document.getElementById("bpmv");
+  var swEl = document.getElementById("swing"), swV = document.getElementById("swingv");
+  bpmEl.addEventListener("input", function () {
+    bpm = parseInt(bpmEl.value, 10); bpmV.textContent = bpm;
+    if (ready) Tone.Transport.bpm.value = bpm;
+    renderTotal(); renderCode(); save();
+  });
+  swEl.addEventListener("input", function () {
+    swing = parseInt(swEl.value, 10); swV.textContent = swing;
+    if (ready) Tone.Transport.swing = swing / 100;
+    renderCode(); save();
+  });
+
+  // ---------- code panel ----------
+  var codeEl = document.getElementById("code");
+
+  function slugMap() {
+    var used = {}, map = {};
+    sections.forEach(function (s) {
+      var base = s.name.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+      if (!base) base = "section";
+      if (/^[0-9]/.test(base)) base = "s_" + base;
+      var key = base, n = 2;
+      while (used[key]) key = base + "_" + (n++);
+      used[key] = true; map[s.id] = key;
+    });
+    return map;
+  }
+  function pad(id) { return (id + ":").padEnd(7, " "); }
+
+  function renderCode() {
+    var sm = slugMap();
+    var secLines = sections.map(function (s) {
+      var rows = LANES.map(function (l) {
+        return "      " + pad(l.id) + "[" + s.pattern[l.id].join(",") + "]";
+      }).join(",\n");
+      return "  " + sm[s.id] + ": {\n    bars: " + s.bars + ",\n    pattern: {\n" + rows + "\n    }\n  }";
+    }).join(",\n");
+    var arrNames = arrangement.map(function (id) { return "\"" + sm[id] + "\""; }).join(", ");
+
+    codeEl.textContent =
+"// 1. data: pola per section + urutan lagu\n" +
+"const bpm = " + bpm + ";\n" +
+"const swing = " + (swing / 100).toFixed(2) + ";\n" +
+"\n" +
+"const sections = {\n" + secLines + "\n};\n" +
+"\n" +
+"const arrangement = [" + arrNames + "];\n" +
+"\n" +
+"// 2. kit (dipanggil ulang di dalam Tone.Offline supaya node-nya ikut context offline)\n" +
+"function buildKit() {\n" +
+"  const out = new Tone.Limiter(-1).toDestination();\n" +
+"\n" +
+"  const kick = new Tone.MembraneSynth({\n" +
+"    pitchDecay: 0.045, octaves: 8,\n" +
+"    envelope: { attack: 0.001, decay: 0.42, sustain: 0.01, release: 1.2 }\n" +
+"  }).connect(out);\n" +
+"\n" +
+"  const snare = new Tone.NoiseSynth({\n" +
+"    envelope: { attack: 0.001, decay: 0.16, sustain: 0 }\n" +
+"  }).chain(new Tone.Filter(1400, \"highpass\"), out);\n" +
+"\n" +
+"  const clap = new Tone.NoiseSynth({\n" +
+"    envelope: { attack: 0.002, decay: 0.22, sustain: 0 }\n" +
+"  }).chain(new Tone.Filter({ type: \"bandpass\", frequency: 1100, Q: 1.4 }), out);\n" +
+"\n" +
+"  const hat = new Tone.MetalSynth({\n" +
+"    frequency: 250, harmonicity: 5.1, modulationIndex: 32, resonance: 6000, octaves: 1.5,\n" +
+"    envelope: { attack: 0.001, decay: 0.045, release: 0.01 }\n" +
+"  }).connect(out);\n" +
+"  hat.volume.value = -26;\n" +
+"\n" +
+"  const open = new Tone.MetalSynth({\n" +
+"    frequency: 250, harmonicity: 5.1, modulationIndex: 32, resonance: 5000, octaves: 1.5,\n" +
+"    envelope: { attack: 0.001, decay: 0.38, release: 0.2 }\n" +
+"  }).connect(out);\n" +
+"  open.volume.value = -29;\n" +
+"\n" +
+"  return {\n" +
+"    kick:  (t) => kick.triggerAttackRelease(\"C1\", \"8n\", t),\n" +
+"    snare: (t) => snare.triggerAttackRelease(\"16n\", t),\n" +
+"    clap:  (t) => clap.triggerAttackRelease(\"8n\", t),\n" +
+"    hat:   (t) => hat.triggerAttackRelease(\"32n\", t),\n" +
+"    open:  (t) => open.triggerAttackRelease(\"8n\", t),\n" +
+"  };\n" +
+"}\n" +
+"\n" +
+"// 3. ratakan arrangement: satu entri per step 1/16, isinya daftar instrumen yang bunyi\n" +
+"const song = arrangement.flatMap((name) => {\n" +
+"  const { bars, pattern } = sections[name];\n" +
+"  return Array.from({ length: bars * 16 }, (_, s) => {\n" +
+"    const i = s % 16;\n" +
+"    return Object.keys(pattern).filter((inst) => pattern[inst][i]);\n" +
+"  });\n" +
+"});\n" +
+"\n" +
+"function schedule(transport, play) {\n" +
+"  let n = 0;\n" +
+"  transport.bpm.value = bpm;\n" +
+"  transport.swingSubdivision = \"16n\";\n" +
+"  transport.swing = swing;\n" +
+"  transport.scheduleRepeat((time) => {\n" +
+"    if (n >= song.length) return;\n" +
+"    song[n].forEach((inst) => play[inst](time));\n" +
+"    n++;\n" +
+"  }, \"16n\");\n" +
+"}\n" +
+"\n" +
+"// 4a. putar langsung (harus dari klik user)\n" +
+"async function playSong() {\n" +
+"  await Tone.start();\n" +
+"  schedule(Tone.Transport, buildKit());\n" +
+"  Tone.Transport.start();\n" +
+"}\n" +
+"\n" +
+"// 4b. render seluruh lagu ke AudioBuffer (lebih cepat dari realtime)\n" +
+"async function renderSong() {\n" +
+"  const seconds = song.length * (60 / bpm / 4) + 2; // +2 dtk untuk tail\n" +
+"  return Tone.Offline(({ transport }) => {\n" +
+"    schedule(transport, buildKit());\n" +
+"    transport.start();\n" +
+"  }, seconds);\n" +
+"}\n" +
+"// buffer.get() -> AudioBuffer; encode ke WAV dengan library mis. audiobuffer-to-wav\n" +
+"// Stem per instrumen: filter song[n] ke satu instrumen, render ulang per instrumen.\n";
+  }
+
+  var copyBtn = document.getElementById("copy");
+  copyBtn.addEventListener("click", function () {
+    var done = function () {
+      copyBtn.textContent = "tersalin";
+      setTimeout(function () { copyBtn.textContent = "salin"; }, 1400);
+    };
+    var fail = function () {
+      copyBtn.textContent = "pilih manual";
+      setTimeout(function () { copyBtn.textContent = "salin"; }, 1800);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(codeEl.textContent).then(done, fail);
+    } else fail();
+  });
+
+  // ---------- boot ----------
+  if (!restore()) initStarter();
+  bpmEl.value = bpm; bpmV.textContent = bpm;
+  swEl.value = swing; swV.textContent = swing;
+  renderTabs(); renderSecControls(); paint(); renderArr(); renderTotal(); renderCode(); setButtons();
+})();
+</script>
+</body>
+</html>
